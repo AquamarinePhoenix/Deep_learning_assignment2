@@ -19,7 +19,12 @@ with open(cfg.CAPTIONS_TRAIN, "r", encoding="utf-8") as f:
 
 write_to_file(results_file, f"Loaded {len(train_data)} training samples")
 
-model, processor, device = load_VLM(cfg.VLM_NAME, cfg.DEVICE)
+# if configured, prefer loading the best fine-tuned model from disk
+load_dir = cfg.BEST_MODEL_SAVE_DIR if getattr(cfg, 'USE_BEST_MODEL', False) and os.path.exists(cfg.BEST_MODEL_SAVE_DIR) else None
+if load_dir:
+    write_to_file(results_file, f"Loading best model from {cfg.BEST_MODEL_SAVE_DIR}")
+
+model, processor, device = load_VLM(cfg.VLM_NAME, cfg.DEVICE, load_dir=load_dir)
 optimizer = th.optim.AdamW(model.parameters(), lr=3e-5)
 
 model = train(model, processor, optimizer, train_data, device, results_file)

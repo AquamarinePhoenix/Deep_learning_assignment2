@@ -6,7 +6,7 @@ from _modules.write import write_to_file
 from torch.utils.data import DataLoader
 from _modules.dataset import CaptionDataset, collate_fn
 
-def train(model, processor, optimizer, data_dict, device, results_file):
+def train(model, processor, optimizer, data_dict, device, results_file, save_best=cfg.SAVE_BEST):
     from torch.utils.data import DataLoader
     from _modules.dataset import CaptionDataset
 
@@ -14,6 +14,8 @@ def train(model, processor, optimizer, data_dict, device, results_file):
 
     dataset = CaptionDataset(data_dict, cfg.IMAGE_DIR, processor)
     loader = DataLoader(dataset, batch_size=2, shuffle=True, collate_fn=collate_fn)
+
+    best_loss = float("inf") if save_best else None
 
     for epoch in range(cfg.EPOCHS):
         model.train()
@@ -56,6 +58,21 @@ def train(model, processor, optimizer, data_dict, device, results_file):
         avg_loss = total_loss / count if count > 0 else 0
         write_to_file(results_file, f"Epoch {epoch + 1}, Average Loss: {avg_loss:.4f}")
 
+        # save best-performing model by lowest average loss
+        if save_best:
+            try:
+                if avg_loss < best_loss:
+                    best_loss = avg_loss
+                    best_dir = cfg.BEST_MODEL_SAVE_DIR
+                    os.makedirs(best_dir, exist_ok=True)
+                    model.save_pretrained(best_dir)
+                    processor.save_pretrained(best_dir)
+                    write_to_file(results_file, f"New best model saved (Epoch {epoch + 1}) with avg_loss {avg_loss:.4f} -> {best_dir}")
+            except Exception as e:
+                write_to_file(results_file, f"Failed to save best model: {e}")
+
+    # always save final model
+    os.makedirs(cfg.MODEL_SAVE_DIR, exist_ok=True)
     model.save_pretrained(cfg.MODEL_SAVE_DIR)
     processor.save_pretrained(cfg.MODEL_SAVE_DIR)
 
