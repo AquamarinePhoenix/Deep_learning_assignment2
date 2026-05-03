@@ -150,6 +150,7 @@ data/
 - **Model initialized**: BLIP (`Salesforce/blip-image-captioning-base`)
 - **Fine-tuning strategy**: Vision encoder frozen, text decoder trained
 - **Training loop implemented**: Batch processing, loss tracking, epoch-based training
+- **Validation strategy**: A held-out subset of the training captions is reserved as validation data, and we track validation F1 and BLEU by comparing generated captions against the held-out references
 - **Best model tracking**: Automatic checkpoint saving on minimum loss
 - **Evaluation pipeline ready**: Test set prepared for caption generation and comparison
 
@@ -175,6 +176,7 @@ Edit `_modules/config.py` to adjust:
 - `NUM_BEAMS`: beam width for stronger candidate search during generation
 - `DO_SAMPLE`: enables sampling mode for generation (`True` by default)
 - `TEMPERATURE`: controls caption diversity when sampling is enabled
+- `VAL_SPLIT`: fraction of training captions reserved for validation
 
 ### Why These Constants Were Chosen
 
@@ -183,6 +185,9 @@ Edit `_modules/config.py` to adjust:
 - `EPOCHS = 2`: practical baseline to verify learning signal quickly before longer runs.
 - `NUM_BEAMS = 5`: balances quality and speed for short caption generation.
 - `DO_SAMPLE = True` with `TEMPERATURE = 0.7`: keeps outputs temperature-sensitive while limiting overly random captions.
+- `VAL_SPLIT = 0.1`: reserves a small validation subset so epoch-level validation F1 is computed on unseen training samples.
+
+Validation is reported as F1-style token overlap between generated and reference Lithuanian captions (token-level F1), and a simple BLEU-1 style precision with a brevity penalty. These two metrics provide complementary views of caption quality on a small dataset.
 
 Practical tuning guideline:
 - Lower `TEMPERATURE` (e.g., `0.4-0.6`) for safer, more deterministic captions.
@@ -291,8 +296,8 @@ This approach:
 
 ## Next Steps & Extensions
 
-- Add more images to increase dataset diversity
-- Implement evaluation metrics (BLEU, CIDEr, METEOR)
+-- Add more images to increase dataset diversity
+-- Implement additional evaluation metrics (CIDEr, METEOR) — BLEU is already computed and plotted per-epoch
 - Support multi-reference captions per image
 - Test on other low-resource languages
 - Compare fine-tuned vs. base model performance

@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-def plot_loss_history(train_loss, val_loss=None, epoch_times=None, save_path=None):
+def plot_loss_history(train_loss, val_loss=None, val_bleu=None, epoch_times=None, save_path=None):
     epochs = list(range(1, len(train_loss) + 1))
 
     if epoch_times is None:
@@ -8,11 +8,13 @@ def plot_loss_history(train_loss, val_loss=None, epoch_times=None, save_path=Non
         plt.plot(epochs, train_loss, marker="o", label="Train Loss")
 
         if val_loss is not None:
-            plt.plot(epochs, val_loss, marker="s", label="Validation Loss")
+            plt.plot(epochs, val_loss, marker="s", label="Validation F1")
+        if val_bleu is not None:
+            plt.plot(epochs, val_bleu, marker="^", label="Validation BLEU")
 
         plt.xlabel("Epoch")
         plt.ylabel("Loss")
-        plt.title("Training vs Validation Loss")
+        plt.title("Training Loss vs Validation F1")
         plt.legend()
         plt.grid(True, alpha=0.3)
         if save_path:
@@ -25,10 +27,12 @@ def plot_loss_history(train_loss, val_loss=None, epoch_times=None, save_path=Non
 
     axes[0].plot(epochs, train_loss, marker="o", label="Train Loss", linewidth=2)
     if val_loss is not None:
-        axes[0].plot(epochs, val_loss, marker="s", label="Validation Loss", linewidth=2)
+        axes[0].plot(epochs, val_loss, marker="s", label="Validation F1", linewidth=2)
+    if val_bleu is not None:
+        axes[0].plot(epochs, val_bleu, marker="^", label="Validation BLEU", linewidth=2)
     axes[0].set_xlabel("Epoch")
-    axes[0].set_ylabel("Loss")
-    axes[0].set_title("Training vs Validation Loss")
+    axes[0].set_ylabel("Metric")
+    axes[0].set_title("Training Loss vs Validation F1")
     axes[0].legend()
     axes[0].grid(True, alpha=0.3)
 
