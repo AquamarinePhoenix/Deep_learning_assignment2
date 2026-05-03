@@ -1,12 +1,12 @@
 import torch as th
 
-EPOCHS = 5
+EPOCHS = 2
 TEMPERATURE = 0.7
 LEARNING_RATE = 3e-5
 BATCH_SIZE = 4
 NUM_BEAMS = 5
 DO_SAMPLE = True
-VAL_SPLIT = 0.1
+VAL_SPLIT = 0
 
 VLM_NAME = "Salesforce/blip-image-captioning-base"
 DEVICE = "cuda" if th.cuda.is_available() else "cpu"

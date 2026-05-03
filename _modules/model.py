@@ -2,12 +2,11 @@ import os
 import random
 import torch as th
 from torch.utils.data import DataLoader
-from torch.utils.data import DataLoader
 from PIL import Image
 import _modules.config as cfg
 from _modules.write import write_to_file
 from _modules.dataset import CaptionDataset, collate_fn
-from _modules.dataset import CaptionDataset
+from _modules.plots import plot_loss_history
 import time
 import re
 
@@ -26,43 +25,6 @@ def f1_score(pred, real):
         return 0
 
     return 2 * precision * recall / (precision + recall)
-
-def compute_val_f1(model, processor, data_dict, device, image_split="train"):
-    model.eval()
-    total_f1 = 0
-    count = 0
-
-    with th.no_grad():
-        for item in data_dict:
-            img_name = item["image"]
-            test_path = cfg.IMAGE_DIR + image_split + "/" + img_name
-
-            if not os.path.exists(test_path):
-                continue
-
-            image = Image.open(test_path).convert("RGB")
-
-            inputs = processor(images=image, return_tensors="pt").to(device)
-
-            gen_kwargs = {
-                "max_new_tokens": 50,
-                "num_beams": cfg.NUM_BEAMS,
-                "repetition_penalty": 1.2,
-                "no_repeat_ngram_size": 3,
-                "early_stopping": True,
-            }
-
-            if getattr(cfg, "DO_SAMPLE", True):
-                gen_kwargs["do_sample"] = True
-                gen_kwargs["temperature"] = cfg.TEMPERATURE
-
-            out = model.generate(**inputs, **gen_kwargs)
-            pred_lt = processor.decode(out[0], skip_special_tokens=True)
-
-            total_f1 += f1_score(pred_lt, item["caption_lt"])
-            count += 1
-
-    return total_f1 / count if count > 0 else 0
 
 def bleu_score(pred, real):
     # Simple BLEU-1 with brevity penalty
@@ -121,8 +83,6 @@ def compute_val_metrics(model, processor, data_dict, device, image_split="train"
 
 def train(model, processor, optimizer, data_dict, device, results_file, val_data=None, save_best=cfg.SAVE_BEST):
     loss_history = []
-    val_history = []
-    val_bleu_history = []
     epoch_times = []
     first_epoch_sample_index = 0
 
@@ -175,15 +135,10 @@ def train(model, processor, optimizer, data_dict, device, results_file, val_data
 
         avg_loss = total_loss / count if count > 0 else 0
         loss_history.append(avg_loss)
-        validation_data = val_data if val_data is not None else data_dict
-        val_f1, val_bleu = compute_val_metrics(model, processor, validation_data, device, image_split="train")
-        val_history.append(val_f1)
-        val_bleu_history.append(val_bleu)
         
         epoch_time = time.time() - epoch_start_time
         epoch_times.append(epoch_time)
-        write_to_file(results_file, f"Epoch {epoch + 1}, Average Loss: {avg_loss:.4f},\
-            Validation F1: {val_f1:.4f}, Validation BLEU: {val_bleu:.4f}, Time: {epoch_time:.2f}s")
+        write_to_file(results_file, f"Epoch {epoch + 1}, Average Loss: {avg_loss:.4f}, Time: {epoch_time:.2f}s")
 
         # save best-performing model by lowest average loss
         if save_best:
@@ -204,7 +159,65 @@ def train(model, processor, optimizer, data_dict, device, results_file, val_data
     model.save_pretrained(cfg.MODEL_SAVE_DIR)
     processor.save_pretrained(cfg.MODEL_SAVE_DIR)
 
-    return model, loss_history, val_history, val_bleu_history, epoch_times
+    return model, loss_history, epoch_times
+
+def validate(model, processor, data_dict, device, results_file, train_loss=None, epoch_times=None, plot_path=None):
+    model.to(device)
+    model.eval()
+
+    total_f1 = 0
+    total_bleu = 0
+    count = 0
+
+    for item in data_dict:
+        img_name = item["image"]
+        test_path = cfg.IMAGE_DIR + "test/" + img_name
+
+        if not os.path.exists(test_path):
+            continue
+
+        image = Image.open(test_path).convert("RGB")
+
+        inputs = processor(images=image, return_tensors="pt").to(device)
+
+        with th.no_grad():
+            gen_kwargs = {
+                "max_new_tokens": 50,
+                "num_beams": cfg.NUM_BEAMS,
+                "repetition_penalty": 1.2,
+                "no_repeat_ngram_size": 3,
+                "early_stopping": True,
+            }
+
+            if getattr(cfg, "DO_SAMPLE", True):
+                gen_kwargs["do_sample"] = True
+                gen_kwargs["temperature"] = cfg.TEMPERATURE
+
+            out = model.generate(
+                **inputs,
+                **gen_kwargs,
+            )
+
+        pred_lt = processor.decode(out[0], skip_special_tokens=True)
+        real_lt = item.get("caption_lt", "")
+
+        write_to_file(results_file, f"\nVALIDATION {img_name}")
+        write_to_file(results_file, f"Pred_LT: {pred_lt}")
+        write_to_file(results_file, f"Real_LT: {real_lt}")
+
+        if real_lt:
+            total_f1 += f1_score(pred_lt, real_lt)
+            total_bleu += bleu_score(pred_lt, real_lt)
+            count += 1
+
+    avg_f1 = total_f1 / count if count > 0 else 0
+    avg_bleu = total_bleu / count if count > 0 else 0
+    write_to_file(results_file, f"Validation summary -> F1: {avg_f1:.4f}, BLEU: {avg_bleu:.4f}")
+
+    if train_loss:
+        plot_loss_history(train_loss, epoch_times=epoch_times, save_path=plot_path)
+
+    return avg_f1, avg_bleu
 
 def evaluate(model, processor, data_dict, device, results_file):
     model.to(device)
@@ -244,11 +257,9 @@ def evaluate(model, processor, data_dict, device, results_file):
 
         write_to_file(results_file, f"\nTEST {img_name}")
         write_to_file(results_file, f"Pred_LT: {pred_lt}")
-        write_to_file(results_file, f"Real_LT: {item['caption_lt']}")
-        write_to_file(results_file, f"Real_EN: {item['caption_en']}")
     return model
 
-def validate(train_data, results_file):
+def split_train_validation(train_data, results_file):
     val_split = getattr(cfg, "VAL_SPLIT", None)
     if val_split is not None and val_split > 0:
         train_items = list(train_data)
