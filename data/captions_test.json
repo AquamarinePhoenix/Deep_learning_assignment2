@@ -1,17 +1,17 @@
 [
   {
-    "image": "people/girls_umbrella.jpg",
-    "caption_en": "four girls standing together under a pink umbrella",
-    "caption_lt": "keturios merginos stovi kartu po rožiniu skėčiu"
-  },
-  {
     "image": "animals/sheep.jpg",
-    "caption_en": "a sheep standing in grass",
-    "caption_lt": "avis stovinti žolėje"
+    "caption_en": "three white small sheeps are either standing or sitting on the green short grass",
+    "caption_lt": "trys baltos mažos avys stovi arba sėdi ant žalios trumpos žolės"
   },
   {
     "image": "landscapes/nature.jpg",
-    "caption_en": "a natural landscape with trees",
-    "caption_lt": "natūralus kraštovaizdis su medžiais"
+    "caption_en": "a natural landscape containing a bridge covered with greenery at distance",
+    "caption_lt": "natūralus kraštovaizdis, kurį sudaro tiltas ir tolumoje esanti žaluma"
+  },
+  {
+    "image": "people/girls_umbrella.jpg",
+    "caption_en": "four girls standing together under a pink umbrella",
+    "caption_lt": "keturios merginos stovi kartu po rožiniu skėčiu"
   }
 ]
