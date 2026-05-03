@@ -1,0 +1,257 @@
+[
+  {
+    "image": "activities/firebreathing.jpg",
+    "caption_en": "a performer breathing fire",
+    "caption_lt": "atlikėjas kvėpuoja ugnimi"
+  },
+  {
+    "image": "activities/sport.jpg",
+    "caption_en": "a group of people doing aerial exercises in a gym",
+    "caption_lt": "Grupė žmonių daro akrobatinius pratimus sporto salėje"
+  },
+  {
+    "image": "animals/horse.jpg",
+    "caption_en": "a horse standing in a field",
+    "caption_lt": "arklys stovintis lauke"
+  },
+  {
+    "image": "animals/horses.jpg",
+    "caption_en": "horses standing together in a field",
+    "caption_lt": "arkliai stovi kartu lauke"
+  },
+  {
+    "image": "animals/cat.jpg",
+    "caption_en": "a cat sitting on the ground",
+    "caption_lt": "katė sėdi ant žemės"
+  },
+  {
+    "image": "animals/dog.jpg",
+    "caption_en": "a dog sitting outdoors",
+    "caption_lt": "šuo sėdi lauke"
+  },
+  {
+    "image": "animals/snail.jpg",
+    "caption_en": "a snail crawling on the ground",
+    "caption_lt": "sraigė šliaužianti žeme"
+  },
+  {
+    "image": "body_part/eye.jpg",
+    "caption_en": "a close up of a human eye",
+    "caption_lt": "arti matoma žmogaus akis"
+  },
+  {
+    "image": "body_part/feet_nails.jpg",
+    "caption_en": "a close up of feet with painted nails",
+    "caption_lt": "arti matomos pėdos su lakuotais nagais"
+  },
+  {
+    "image": "clothing/hat.png",
+    "caption_en": "a hat on a plain background",
+    "caption_lt": "kepurė ant paprasto fono"
+  },
+  {
+    "image": "clothing/dresses.jpg",
+    "caption_en": "dresses hanging on display",
+    "caption_lt": "suknelės kabančios ant stendo"
+  },
+  {
+    "image": "clothing/socks.jpg",
+    "caption_en": "a pair of striped socks",
+    "caption_lt": "dryžuotos kojinės"
+  },
+  {
+    "image": "complex/woman_horse.jpg",
+    "caption_en": "a woman standing next to a horse",
+    "caption_lt": "moteris stovi šalia arklio"
+  },
+  {
+    "image": "complex/people_car.jpg",
+    "caption_en": "two women lying on top of a car",
+    "caption_lt": "dvi moterys guli ant automobilio"
+  },
+  {
+    "image": "food/egg.jpg",
+    "caption_en": "eggs in a cardboard carton",
+    "caption_lt": "kiaušiniai kartoninėje dėžutėje"
+  },
+  {
+    "image": "food/peas.jpg",
+    "caption_en": "a peas pod with two peas in it",
+    "caption_lt": "žirnių ankštis su dviem žirniais viduje"
+  },
+  {
+    "image": "furniture/bench.jpg",
+    "caption_en": "a wooden bench sitting outdoors",
+    "caption_lt": "medinis suolas lauke"
+  },
+  {
+    "image": "furniture/sofa.jpg",
+    "caption_en": "an old sofa in an abandoned room",
+    "caption_lt": "sena sofa apleistame kambaryje"
+  },
+  {
+    "image": "landscapes/ark.jpg",
+    "caption_en": "a stone arch over a landscape or structure",
+    "caption_lt": "kraštovaizdis su akmenine arka"
+  },
+  {
+    "image": "landscapes/ice.jpg",
+    "caption_en": "icy, frozen surface landscape",
+    "caption_lt": "ledinis, sušalęs paviršiaus kraštovaizdis"
+  },
+  {
+    "image": "landscapes/space.jpg",
+    "caption_en": "an astronaut floating in the air above earth",
+    "caption_lt": "astronautas sklando virš Žemės"
+  },
+  {
+    "image": "miscellaneous/bubbles.jpg",
+    "caption_en": "soap bubbles floating in the air",
+    "caption_lt": "muilo burbulai plūduriuoja ore"
+  },
+  {
+    "image": "miscellaneous/game_cones.jpg",
+    "caption_en": "a pile of colorful game cones",
+    "caption_lt": "spalvotų žaidimo kūgelių krūva"
+  },
+  {
+    "image": "miscellaneous/strings.jpg",
+    "caption_en": "a bundle of colorful strings",
+    "caption_lt": "spalvotų virvelių ryšulys"
+  },
+  {
+    "image": "miscellaneous/star_wars.jpg",
+    "caption_en": "a star wars character in armor holding a weapon",
+    "caption_lt": "Star Wars veikėjas su šarvais ir ginklu"
+  },
+  {
+    "image": "miscellaneous/structure.jpg",
+    "caption_en": "a concrete structure or building detail",
+    "caption_lt": "betoninė konstrukcija arba pastato detalė"
+  },
+  {
+    "image": "nature/flowers.jpg",
+    "caption_en": "wildflowers in a field at sunset",
+    "caption_lt": "laukinės gėlės lauke saulėlydžio metu"
+  },
+  {
+    "image": "nature/fireplace.jpg",
+    "caption_en": "a fireplace burning indoors",
+    "caption_lt": "dega židinys patalpoje"
+  },
+  {
+    "image": "nature/pine_cone.jpg",
+    "caption_en": "a pine cone on the ground",
+    "caption_lt": "kankorėžis ant žemės"
+  },
+  {
+    "image": "nature/trees.jpg",
+    "caption_en": "trees growing in a forest",
+    "caption_lt": "medžiai augantys miške"
+  },
+  {
+    "image": "nature/water.jpg",
+    "caption_en": "water flowing through the scene",
+    "caption_lt": "vanduo tekantis per peizažą"
+  },
+  {
+    "image": "objects/car.jpg",
+    "caption_en": "a car parked outdoors",
+    "caption_lt": "lauke pastatytas automobilis"
+  },
+  {
+    "image": "objects/clock_tower.jpg",
+    "caption_en": "a brick clock tower with clocks",
+    "caption_lt": "plytinis laikrodžio bokštas su laikrodžiais"
+  },
+  {
+    "image": "objects/glasses.jpg",
+    "caption_en": "a pair of eyeglasses",
+    "caption_lt": "akinių pora"
+  },
+  {
+    "image": "objects/garbage.jpg",
+    "caption_en": "garbage piled in a container",
+    "caption_lt": "šiukšlės sukrautos konteineryje"
+  },
+  {
+    "image": "objects/money.jpg",
+    "caption_en": "money laid out on a surface",
+    "caption_lt": "pinigai padėti ant paviršiaus"
+  },
+  {
+    "image": "objects/sculpture.jpg",
+    "caption_en": "a sculpture displayed outdoors",
+    "caption_lt": "lauke eksponuojama skulptūra"
+  },
+  {
+    "image": "objects/train.jpg",
+    "caption_en": "a train going over a bridge in the woods",
+    "caption_lt": "Traukinys važiuoja per tiltą miške"
+  },
+  {
+    "image": "people/girl.jpg",
+    "caption_en": "a girl standing outdoors",
+    "caption_lt": "lauke stovinti mergaitė"
+  },
+  {
+    "image": "people/family.jpg",
+    "caption_en": "a couple sitting with a dog on a couch",
+    "caption_lt": "pora sėdi su šunimi ant sofos"
+  },
+  {
+    "image": "people/cyclist.jpg",
+    "caption_en": "a woman riding a bicycle",
+    "caption_lt": "moteris važiuoja dviračiu"
+  },
+  {
+    "image": "people/dancers.jpg",
+    "caption_en": "three dancers posing on a stage",
+    "caption_lt": "trys šokėjos pozuoja scenoje"
+  },
+  {
+    "image": "people/girl_floor.jpg",
+    "caption_en": "a woman lying on the floor in a room",
+    "caption_lt": "moteris gulinti ant grindų kambaryje"
+  },
+  {
+    "image": "people/kid.jpg",
+    "caption_en": "a child sitting on a skateboard",
+    "caption_lt": "vaikas sėdintis ant riedlentės"
+  },
+  {
+    "image": "people/knight.jpg",
+    "caption_en": "a knight in armor",
+    "caption_lt": "riteris su šarvais"
+  },
+  {
+    "image": "people/photographer.jpg",
+    "caption_en": "a photographer taking a picture",
+    "caption_lt": "fotografas darantis nuotrauką"
+  },
+  {
+    "image": "people/rider.jpg",
+    "caption_en": "a rider on a horse",
+    "caption_lt": "raitelis ant žirgo"
+  },
+  {
+    "image": "people/woman_on_rails.jpg",
+    "caption_en": "a woman sitting on railway tracks",
+    "caption_lt": "moteris sėdi ant geležinkelio bėgių"
+  },
+  {
+    "image": "tools/cuttlery.jpg",
+    "caption_en": "cutlery arranged on a table",
+    "caption_lt": "stalo įrankiai išdėstyti ant stalo"
+  },
+  {
+    "image": "tools/pencils.jpg",
+    "caption_en": "a set of pencils",
+    "caption_lt": "pieštukų rinkinys"
+  },
+  {
+    "image": "tools/tools.jpg",
+    "caption_en": "tools hanging on a wall",
+    "caption_lt": "įrankiai pakabinti ant sienos"
+  }
+]
