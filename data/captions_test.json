@@ -1,8 +1,38 @@
 [
   {
+    "image": "activities/sport_run.jpg",
+    "caption_en": "few sports people running or jumping over vaulting pole near water",
+    "caption_lt": "keli sportininkai begioja arba šoka per kartį prie vandens"
+  },
+  {
     "image": "animals/sheep.jpg",
     "caption_en": "three white small sheeps are either standing or sitting on the green short grass",
     "caption_lt": "trys baltos mažos avys stovi arba sėdi ant žalios trumpos žolės"
+  },
+  {
+    "image": "body_part/hands_feet.jpg",
+    "caption_en": "two pair of black skinned hands holding white skinned small feet",
+    "caption_lt": "dvi poros tamsiaodžių rankų, laikančių baltaodes mažas pėdas"
+  },
+  {
+    "image": "clothing/sweater.jpg",
+    "caption_en": "a blue sweater on the white background",
+    "caption_lt": "mėlynas megztinis baltame fone"
+  },
+  {
+    "image": "complex/mosaic.jpg",
+    "caption_en": "a mosaic of people at different angles and forms rotated around",
+    "caption_lt": "mozaika žmonių skirtingais kampais ir formomis, sudėtais ratu"
+  },
+  {
+    "image": "food/lemons.jpg",
+    "caption_en": "two sliced and one full yellow lemon in the white background",
+    "caption_lt": "dvi perpjautos ir viena pilna geltona citrina baltame fone"
+  },
+  {
+    "image": "furniture/bed.jpg",
+    "caption_en": "a white sheet bed in a room with a lamp",
+    "caption_lt": "baltos patalynės lova kambaryje su lempa"
   },
   {
     "image": "landscapes/nature.jpg",
@@ -10,8 +40,28 @@
     "caption_lt": "natūralus kraštovaizdis, kurį sudaro tiltas ir tolumoje esanti žaluma"
   },
   {
-    "image": "people/girls_umbrella.jpg",
-    "caption_en": "four girls standing together under a pink umbrella",
-    "caption_lt": "keturios merginos stovi kartu po rožiniu skėčiu"
+    "image": "miscellaneous/rocks.jpg",
+    "caption_en": "dark rocks scatter on the ground with a small blue snail in the middle",
+    "caption_lt": "tamsūs akmenys, pažerti ant grindų su maža mėlyna sraige viduryje"
+  },
+  {
+    "image": "nature/forest.jpg",
+    "caption_en": "trees in the forest with a dim sunlight",
+    "caption_lt": "medžiai miške su blankia saulės šviesa"
+  },
+  {
+    "image": "objects/tram.jpg",
+    "caption_en": "a blue and white colored tram on rails",
+    "caption_lt": "mėlynos ir baltos spalvų tramvajus ant bėgių"
+  },
+  {
+    "image": "people/woman.jpg",
+    "caption_en": "a dark haired girl smiling with one eye closed",
+    "caption_lt": "tamsiaplaukė mergina, besišypsanti su viena akimi užmerkta"
+  },
+  {
+    "image": "tools/drill.jpg",
+    "caption_en": "a yellow drill on the white background",
+    "caption_lt": "geltonas grąžtas baltame fone"
   }
 ]
