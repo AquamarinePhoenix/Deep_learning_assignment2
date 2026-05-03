@@ -7,6 +7,7 @@ BATCH_SIZE = 4
 NUM_BEAMS = 5
 DO_SAMPLE = True
 VAL_SPLIT = 0
+TRAIN_SUBSET_RATIO = 0.05
 
 VLM_NAME = "Salesforce/blip-image-captioning-base"
 DEVICE = "cuda" if th.cuda.is_available() else "cpu"
