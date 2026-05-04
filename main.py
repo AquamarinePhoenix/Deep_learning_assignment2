@@ -10,6 +10,7 @@ from _modules.write import clear_file, write_to_file
 from _modules.model import train, evaluate
 from _modules.plots import plot_training_curves
 from transformers import CLIPProcessor, CLIPModel
+from _modules.plots import plot_training_curves
 
 load_dotenv()
 token = os.getenv("HF_TOKEN")
