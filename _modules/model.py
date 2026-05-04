@@ -1,12 +1,40 @@
 import os
 import torch as th
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from PIL import Image
 import _modules.config as cfg
 from _modules.write import write_to_file
 from _modules.dataset import CaptionDataset, collate_fn
 import time
+import re
+from collections import Counter
 
+def normalize_text(text):
+    text = text.lower()
+    text = re.sub(r"[^\w\s]", "", text)  # remove punctuation
+    tokens = text.split()
+    return tokens
+
+def token_f1(pred, gt):
+    pred_tokens = normalize_text(pred)
+    gt_tokens = normalize_text(gt)
+
+    pred_counter = Counter(pred_tokens)
+    gt_counter = Counter(gt_tokens)
+
+    # intersection (min counts)
+    common = pred_counter & gt_counter
+    overlap = sum(common.values())
+
+    if overlap == 0:
+        return 0.0, 0.0, 0.0
+
+    precision = overlap / sum(pred_counter.values())
+    recall = overlap / sum(gt_counter.values())
+    f1 = 2 * precision * recall / (precision + recall)
+
+    return precision, recall, f1
 
 def train(model, processor, optimizer, data_dict, device, results_file, save_best=cfg.SAVE_BEST):
     loss_history = []
@@ -88,12 +116,15 @@ def train(model, processor, optimizer, data_dict, device, results_file, save_bes
 
     return model, loss_history, epoch_times
 
-def evaluate(model, processor, data_dict, device, results_file):
+def evaluate(model, processor, data_dict, device, results_file, clip_model, clip_processor):
     model.to(device)
     model.eval()
 
     evaluated_count = 0
     skipped_count = 0
+    
+    total_f1 = 0
+    count = 0
 
     for item in data_dict:
         img_name = item["image"]
@@ -133,12 +164,47 @@ def evaluate(model, processor, data_dict, device, results_file):
             )
 
         pred_lt = processor.decode(out[0], skip_special_tokens=True)
+        
+        # prepare inputs for CLIP
+        clip_inputs = clip_processor(
+            text=[pred_lt, item["caption_lt"]],
+            images=image,
+            return_tensors="pt",
+            padding=True
+        ).to(device)
+
+        with th.no_grad():
+            outputs = clip_model(**clip_inputs)
+
+        # embeddings
+        image_embeds = outputs.image_embeds      # (1, D)
+        text_embeds = outputs.text_embeds        # (2, D)
+
+        # normalize
+        image_embeds = F.normalize(image_embeds, dim=-1)
+        text_embeds = F.normalize(text_embeds, dim=-1)
+
+        # compute cosine similarities
+        sim_pred = th.matmul(image_embeds, text_embeds[0].unsqueeze(0).T).item()
+        sim_gt   = th.matmul(image_embeds, text_embeds[1].unsqueeze(0).T).item()
+        
+        precision, recall, f1 = token_f1(pred_lt, item["caption_lt"])
+        
         real_lt = item.get("caption_lt", "")
 
         write_to_file(results_file, f"\nTEST {img_name}")
         write_to_file(results_file, f"Pred_LT: {pred_lt}")
         write_to_file(results_file, f"Real_LT: {real_lt}")
+        write_to_file(results_file, f"CLIP_sim_pred: {sim_pred:.4f}")
+        write_to_file(results_file, f"CLIP_sim_gt:   {sim_gt:.4f}")
+        write_to_file(results_file, f"Precision: {precision:.4f}")
+        write_to_file(results_file, f"Recall:    {recall:.4f}")
+        write_to_file(results_file, f"F1:        {f1:.4f}")
+        total_f1 += f1
+        count += 1
         evaluated_count += 1
 
     write_to_file(results_file, f"TEST summary -> evaluated: {evaluated_count}, skipped: {skipped_count}")
+    avg_f1 = total_f1 / count if count > 0 else 0
+    write_to_file(results_file, f"\nAverage F1: {avg_f1:.4f}")
     return model
