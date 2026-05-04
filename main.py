@@ -8,7 +8,9 @@ import _modules.config as cfg
 from _modules.VLM import load_VLM
 from _modules.write import clear_file, write_to_file
 from _modules.model import train, evaluate
+from _modules.plots import plot_training_curves
 from transformers import CLIPProcessor, CLIPModel
+from _modules.plots import plot_training_curves
 
 load_dotenv()
 token = os.getenv("HF_TOKEN")
@@ -52,6 +54,8 @@ optimizer = th.optim.AdamW(
 
 model, loss_history, epoch_times = train(model, processor, optimizer, train_data, device, results_file)
 write_to_file(results_file, f"Total training time: {sum(epoch_times):.2f}s")
+
+plot_training_curves(loss_history, epoch_times)
 
 with open(cfg.CAPTIONS_TEST, "r", encoding="utf-8") as f:
     test_data = json.load(f)

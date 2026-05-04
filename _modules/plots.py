@@ -1,51 +1,37 @@
 import matplotlib.pyplot as plt
 
-def plot_loss_history(train_loss, val_loss=None, val_bleu=None, epoch_times=None, save_path=None):
-    epochs = list(range(1, len(train_loss) + 1))
+def plot_training_curves(loss_history, time_history):
+    epochs = list(range(1, len(loss_history) + 1))
+    fig, ax1 = plt.subplots()
+    
+    ax1.bar(
+        epochs,
+        time_history,
+        alpha=0.6,
+        label="Time per Epoch (s)",
+        color = "#62a5ac"
+    )
+    ax1.grid(True, linestyle="--", alpha=0.3)
+    ax1.set_xlabel("Epoch")
+    ax1.set_ylabel("Time (seconds)")
+    ax1.tick_params(axis='y')
 
-    if epoch_times is None:
-        plt.figure(figsize=(8, 5))
-        plt.plot(epochs, train_loss, marker="o", label="Train Loss")
+    ax2 = ax1.twinx()
+    ax2.plot(
+        epochs,
+        loss_history,
+        marker="o",
+        linestyle="-",
+        color="#ba6d64",
+        label="Loss",
+        markersize=6,
+        linewidth=2
+    )
+    ax2.set_ylabel("Loss")
+    ax2.tick_params(axis='y')
 
-        if val_loss is not None:
-            plt.plot(epochs, val_loss, marker="s", label="Validation F1")
-        if val_bleu is not None:
-            plt.plot(epochs, val_bleu, marker="^", label="Validation BLEU")
-
-        plt.xlabel("Epoch")
-        plt.ylabel("Loss")
-        plt.title("Training Loss vs Validation F1")
-        plt.legend()
-        plt.grid(True, alpha=0.3)
-        if save_path:
-            plt.tight_layout()
-            plt.savefig(save_path, dpi=100)
-        plt.show()
-        return
-
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-
-    axes[0].plot(epochs, train_loss, marker="o", label="Train Loss", linewidth=2)
-    if val_loss is not None:
-        axes[0].plot(epochs, val_loss, marker="s", label="Validation F1", linewidth=2)
-    if val_bleu is not None:
-        axes[0].plot(epochs, val_bleu, marker="^", label="Validation BLEU", linewidth=2)
-    axes[0].set_xlabel("Epoch")
-    axes[0].set_ylabel("Metric")
-    axes[0].set_title("Training Loss vs Validation F1")
-    axes[0].legend()
-    axes[0].grid(True, alpha=0.3)
-
-    axes[1].bar(epochs, epoch_times, color="steelblue", alpha=0.8, edgecolor="black")
-    axes[1].set_xlabel("Epoch")
-    axes[1].set_ylabel("Time (s)")
-    axes[1].set_title("Epoch Time")
-    axes[1].grid(True, axis="y", alpha=0.3)
-
-    for i, value in enumerate(epoch_times):
-        axes[1].text(epochs[i], value, f"{value:.2f}s", ha="center", va="bottom", fontsize=9)
-
-    plt.tight_layout()
-    if save_path:
-        plt.savefig(save_path, dpi=100)
+    plt.title("Training Loss + Time per Epoch")
+    lines_1, labels_1 = ax1.get_legend_handles_labels()
+    lines_2, labels_2 = ax2.get_legend_handles_labels()
+    ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc="upper right")
     plt.show()
