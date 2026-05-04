@@ -5,6 +5,11 @@
     "caption_lt": "du berniukai ir vienas iš jų kvepuoja ugnimi su buteliu rankoje"
   },
   {
+    "image": "activities/snowboarding.jpg",
+    "caption_en": "two boys holding snowboards with underpants and boots",
+    "caption_lt": "du berniukai, laikantys snieglentes, su trumpikėmis ir botais"
+  },
+  {
     "image": "activities/sport.jpg",
     "caption_en": "two women are doing aerial exercises in a gym in horizontal position",
     "caption_lt": "dvi merginos daro akrobatinius pratimus sporto salėje horizontalioje pozicijoje"
@@ -25,9 +30,24 @@
     "caption_lt": "baltas šuo guli ant nugaros ant grindų"
   },
   {
+    "image": "animals/fly.jpg",
+    "caption_en": "a fly in a blurred background",
+    "caption_lt": "musė išblukusiame fone"
+  },
+  {
+    "image": "animals/hedgehog.jpg",
+    "caption_en": "a hedgehog on the leather object",
+    "caption_lt": "ežiukas ant odinio objekto"
+  },
+  {
     "image": "animals/snail.jpg",
     "caption_en": "a green snail crawling on the ground",
     "caption_lt": "žalia sraigė šliaužianti ant žemės"
+  },
+  {
+    "image": "animals/squirrel.jpg",
+    "caption_en": "a squirrel around the tall green grass",
+    "caption_lt": "voverė aplink aukštą žalią žolę"
   },
   {
     "image": "body_part/eye.jpg",
@@ -38,6 +58,11 @@
     "image": "body_part/feet_nails.jpg",
     "caption_en": "a close up of feet of a woman held with hands that are with painted red nails and visible dark hair with blue tie",
     "caption_lt": "arti esančios merginos pėdos, apimtos rankų su raudonais nagais, ir matomi tamsūs plaukai su mėlyna gumyte"
+  },
+  {
+    "image": "body_part/hand_signs.jpg",
+    "caption_en": "four different hands showing signs",
+    "caption_lt": "keturios skirtingos rankos rodo ženklus"
   },
   {
     "image": "clothing/hat.png",
@@ -65,14 +90,29 @@
     "caption_lt": "dvi moterys guli, pasileidusios plaukus, ant automobilio kapoto"
   },
   {
+    "image": "food/coconut.jpg",
+    "caption_en": "two halves of coconut on the bamboo sticks",
+    "caption_lt": "dvi kokoso pusės ant bambuko šakų"
+  },
+  {
     "image": "food/egg.jpg",
-    "caption_en": "10 orange and white eggs put in a cardboard carton",
-    "caption_lt": "10 oranžinių ir baltų kiaušinių sudėtų kartoninėje dėžutėje"
+    "caption_en": "ten orange and white eggs put in a cardboard carton",
+    "caption_lt": "dešimt oranžinių ir baltų kiaušinių sudėtų kartoninėje dėžutėje"
+  },
+  {
+    "image": "food/fruits_vegetables.jpg",
+    "caption_en": "arranged fruits and vegetables of various colors",
+    "caption_lt": "surikiuoti vaisiai ir daržovės skirtingų spalvų"
   },
   {
     "image": "food/peas.jpg",
     "caption_en": "a peas pod with six green peas and one red pea in it",
     "caption_lt": "žirnių ankštis su šešiais žaliais žirniais ir vienu raudonu žirniu viduje"
+  },
+  {
+    "image": "food/vegetables_chessboard.jpg",
+    "caption_en": "carrots and cucumbers on the chessboard squares",
+    "caption_lt": "morkos ir agurkai ant šachmatų lentos langelių"
   },
   {
     "image": "furniture/bench.jpg",
@@ -95,6 +135,16 @@
     "caption_lt": "ledinis, sušalęs paviršiaus kraštovaizdis"
   },
   {
+    "image": "landscapes/path_mountain.jpg",
+    "caption_en": "white path on the mountain",
+    "caption_lt": "baltas kelias ant kalno"
+  },
+  {
+    "image": "landscapes/plane_scyscrappers.jpg",
+    "caption_en": "plane in the sky around the scyscrappers",
+    "caption_lt": "lėktuvas danguje aplink dangoraižius"
+  },
+  {
     "image": "landscapes/space.jpg",
     "caption_en": "an astronaut floating in the air above earth",
     "caption_lt": "astronautas sklando virš Žemės"
@@ -110,9 +160,14 @@
     "caption_lt": "spalvotų žaidimo figūrėlių krūva"
   },
   {
-    "image": "miscellaneous/strings.jpg",
-    "caption_en": "a bundle of colorful strings stranded together",
-    "caption_lt": "spalvotų virvelių surištų kartu ryšulys"
+    "image": "miscellaneous/rails.jpg",
+    "caption_en": "train rails coinciding and a railway signal",
+    "caption_lt": "besikertantys traukinio bėgiai ir geležinkelio signalas"
+  },
+  {
+    "image": "miscellaneous/spaceships.jpg",
+    "caption_en": "three spaceships flying in clouded sky and blasting laser to the city",
+    "caption_lt": "trys erdvėlaiviai, skraidantys debesuotu dangumi ir šaudantys lazerį į miestą"
   },
   {
     "image": "miscellaneous/star_wars.jpg",
@@ -120,9 +175,19 @@
     "caption_lt": "star wars veikėjas su juodos ir baltos spalvos šarvais ir ginklu"
   },
   {
+    "image": "miscellaneous/strings.jpg",
+    "caption_en": "a bundle of colorful strings stranded together",
+    "caption_lt": "spalvotų virvelių surištų kartu ryšulys"
+  },
+  {
     "image": "miscellaneous/structure.jpg",
     "caption_en": "metallic, futuristic white structure with a lot of sharp curves around",
     "caption_lt": "metalinė, futuristinio stiliaus balta konstrukcija su daug aštrių kampų aplinkui"
+  },
+  {
+    "image": "miscellaneous/teddybear.jpg",
+    "caption_en": "brown teddy bear inside the opened luggage",
+    "caption_lt": "rudas meškiukas, esantis atviro lagamino viduje"
   },
   {
     "image": "nature/flowers.jpg",
@@ -150,6 +215,26 @@
     "caption_lt": "vanduo palinkęs istrižai vandens stiklinėje ant medinių grindų"
   },
   {
+    "image": "objects/abandoned_house.jpg",
+    "caption_en": "an old grey house with holes in the roof and hay around",
+    "caption_lt": "senas pilkas namas su skylėmis stoge ir šienu aplinkui"
+  },
+  {
+    "image": "objects/bicycle.jpg",
+    "caption_en": "a green frame bicycle with watermelon wheels",
+    "caption_lt": "žalio rėmo dviratis su arbūziniais ratais"
+  },
+  {
+    "image": "objects/candies.jpg",
+    "caption_en": "various colorful gummies in different buckets",
+    "caption_lt": "įvairūs spalvoti guminukai skirtinguose kibirėliuose"
+  },
+  {
+    "image": "objects/candles.jpg",
+    "caption_en": "colorful candles that are bent and lit on the brown cake",
+    "caption_lt": "spalvotos žvakės, kurios yra palinkusios ir uždegtos ant rudo torto"
+  },
+  {
     "image": "objects/car.jpg",
     "caption_en": "a green car with yellow flowers on top parked outdoors",
     "caption_lt": "žalia mašina su geltonomis gelytėmis ant viršaus, pastatyta lauke"
@@ -160,9 +245,9 @@
     "caption_lt": "plytinis oranžinis laikrodžio bokštas su dviem laikrodžiais, statmenai atskirtais siena"
   },
   {
-    "image": "objects/glasses.jpg",
-    "caption_en": "a pair of pink lense eyeglasses with yellow frames on the wooden logs",
-    "caption_lt": "rožinių akinių pora su geltonais rėmeliais ant medinių lentų"
+    "image": "objects/drones.jpg",
+    "caption_en": "two drones that are flying above the flower area",
+    "caption_lt": "du dronai, kurie skraido virš gėlių lauko"
   },
   {
     "image": "objects/garbage.jpg",
@@ -170,9 +255,24 @@
     "caption_lt": "šiukšlės sukrautos konteineryje šalia žolės lauke"
   },
   {
+    "image": "objects/glasses.jpg",
+    "caption_en": "a pair of pink lense eyeglasses with yellow frames on the wooden logs",
+    "caption_lt": "rožinių akinių pora su geltonais rėmeliais ant medinių lentų"
+  },
+  {
+    "image": "objects/log_stairs.jpg",
+    "caption_en": "separated wooden stairs on the green grass",
+    "caption_lt": "atskirti mediniai laiptai ant žalios žolės"
+  },
+  {
     "image": "objects/money.jpg",
     "caption_en": "packs of money put into suitcase and few banknotes laying around",
     "caption_lt": "pinigų pakuotės įdėtos į lagaminą ir keli banknotai guli aplink"
+  },
+  {
+    "image": "objects/sculpture_hat.jpg",
+    "caption_en": "the stulpture of a man with a hat holding a staff",
+    "caption_lt": "vyro skulptūra su kepure, laikantis lazdą"
   },
   {
     "image": "objects/sculpture.jpg",
@@ -180,19 +280,24 @@
     "caption_lt": "skulptūra barzdoto žmogaus su vandens šake ir vandens purslais aplinkui"
   },
   {
+    "image": "objects/steering_wheel.jpg",
+    "caption_en": "a thin steering wheel inside the car",
+    "caption_lt": "plonas vairas mašinos viduje"
+  },
+  {
     "image": "objects/train.jpg",
     "caption_en": "a colorful train going over a bridge in the woods",
     "caption_lt": "spalvotas traukinys važiuoja per tiltą miške"
   },
   {
-    "image": "people/girl.jpg",
-    "caption_en": "a girl drinking yogurt with a straw and wearing a pink dress",
-    "caption_lt": "mergaitė, gerianti jogurtą su šiaudeliu ir vilkinti rožinę suknelę"
+    "image": "objects/wheel.jpg",
+    "caption_en": "a deflated and torn wheel of the car",
+    "caption_lt": "išsileidęs ir praplyšęs mašinos ratas"
   },
   {
-    "image": "people/family.jpg",
-    "caption_en": "a man and woman sitting, holding a mug and a dog on a mattress",
-    "caption_lt": "vyras ir moteris, sėdintys ir laikantys puodelį, ir šuo ant matraso"
+    "image": "people/boy_paint.jpg",
+    "caption_en": "a boy with blue hat and tshirt, red bow tie and colorfully painted face",
+    "caption_lt": "berniukas su mėlyna kepure ir marškiniais, raudona peteliške ir spalvotai nutapytu veidu"
   },
   {
     "image": "people/cyclist.jpg",
@@ -205,9 +310,29 @@
     "caption_lt": "trys šokėjos pozuoja su abiejomis rankomis scenoje"
   },
   {
+    "image": "people/family.jpg",
+    "caption_en": "a man and woman sitting, holding a mug and a dog on a mattress",
+    "caption_lt": "vyras ir moteris, sėdintys ir laikantys puodelį, ir šuo ant matraso"
+  },
+  {
     "image": "people/girl_floor.jpg",
     "caption_en": "a woman lying on the floor in an empty room",
     "caption_lt": "moteris gulinti ant grindų tuščiame kambaryje"
+  },
+  {
+    "image": "people/girl_stretch.jpg",
+    "caption_en": "a girl doing a split outside on the sand",
+    "caption_lt": "mergaitė, daranti špagatą lauke ant smėlio"
+  },
+  {
+    "image": "people/girl.jpg",
+    "caption_en": "a girl drinking yogurt with a straw and wearing a pink dress",
+    "caption_lt": "mergaitė, gerianti jogurtą su šiaudeliu ir vilkinti rožinę suknelę"
+  },
+  {
+    "image": "people/hairdresser.jpg",
+    "caption_en": "a hairdresser with a beard and a black hat cutting client's dark hair",
+    "caption_lt": "kirpėjas su barzda ir juoda kepure kerpa kliento juodus plaukus"
   },
   {
     "image": "people/kid.jpg",
@@ -230,14 +355,34 @@
     "caption_lt": "raitelis su šarvais ant žirgo per saulėlydį"
   },
   {
+    "image": "people/smoking_man.jpg",
+    "caption_en": "a man producing smoke from the mouth",
+    "caption_lt": "vyras, leidžiantis dūmus iš savo burnos"
+  },
+  {
     "image": "people/woman_on_rails.jpg",
     "caption_en": "a brown haired woman with a hoodie and sandals sitting on railway tracks",
     "caption_lt": "rudų plaukų moteris su kapišonu ir sandalais, sėdinti ant geležinkelio bėgių"
   },
   {
+    "image": "tools/abrasive_saw.jpg",
+    "caption_en": "a red abrasive saw cutting metal piece with sparks",
+    "caption_lt": "raudonas abrazyvinis pjūklas, pjaunantis metalinį gabalą su žiežirbomis"
+  },
+  {
+    "image": "tools/chain.jpg",
+    "caption_en": "a corrosive chain strangled hanging in the air",
+    "caption_lt": "korozijos paveikta grandinė supainiota kabo ore"
+  },
+  {
     "image": "tools/cuttlery.jpg",
     "caption_en": "silver forks, spoons and knives arranged on a table",
     "caption_lt": "sidabrinės šakutės, šaukštai ir peiliai, išdėstyti ant stalo"
+  },
+  {
+    "image": "tools/electric_appliances.jpg",
+    "caption_en": "numerous of electric switches placed near each other",
+    "caption_lt": "gausuma elektros jungiklių, įtaisytų šalia vienas kito"
   },
   {
     "image": "tools/pencils.jpg",
