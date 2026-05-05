@@ -1,6 +1,6 @@
 import torch as th
 
-EPOCHS = 8
+EPOCHS = 10
 TEMPERATURE = 0.7
 LEARNING_RATE = 3e-5
 BATCH_SIZE = 5
