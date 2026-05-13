@@ -452,3 +452,8 @@ Moreover, when recall and precision are higher than 0.01, it is apparent that mo
 - Be ready to show the saved checkpoints and training logs, especially the `output/results.txt` file and the saved model folders.
 - Be ready to demonstrate the model on new instructor-provided inputs and describe how the dataset influenced the output.
 - LoRA or DoRA is not required for this assignment; the current fine-tuning setup is already valid as a standard VLM fine-tuning approach.
+
+- calculate blue stats on text comparison
+- compare to first task's dataset. two checkpoints: model designed and pretrained.
+- data augmentations: mosaics, complex photo design
+- temperature = 0 check
