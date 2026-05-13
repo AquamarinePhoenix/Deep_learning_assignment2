@@ -10,21 +10,22 @@
 
 ## Goals & Objectives
 
-### Core Task
+### Core Tasks
 
-1. **Preparing for training**
+1. **Dataset Preparation**
    - Collect and organize images across diverse semantic categories
    - Provide dual-language captions (English and Lithuanian) for each image
-   - Ensure the dataset is manually curated and representative of real and sureal world visual content
+   - Ensure manual curation and representation of real-world visual content
 
-2. **Fine-Tuning a Pre-trained VLM**
-   - Adapt `Salesforce/blip-image-captioning-base` using our Lithuanian dataset
-   - Use strategic fine-tuning: freeze vision encoder to preserve visual understanding, train the text decoder
-   - Save the best-performing checkpoint based on training metrics
+2. **Model Fine-Tuning**
+   - Adapt `Salesforce/blip-image-captioning-base` using the Lithuanian dataset
+   - Use strategic fine-tuning: freeze vision encoder, train text decoder
+   - Save best-performing checkpoint based on training metrics
 
-3. **Validating the model**
-   - Evaluate the model on held-out test images
+3. **Model Validation**
+   - Evaluate on held-out test images
    - Generate Lithuanian captions for unseen images
+   - Report metrics: token F1-score and CLIP similarity
 
 ---
 This task requires creating a new, unique small dataset and using it to fine-tune a VLM for Lithuanian language.
@@ -60,7 +61,10 @@ A **Lithuanian Image Captioning Dataset** with:
 - **Dual captions**: English descriptions and Lithuanian translations for each image
 - **Category-based organization**: Images organized by semantic content for better learning signal
 
-### Dataset Categories & Statistics
+### Dataset Categories
+
+> [!CAUTION]
+> **Class Imbalance Alert**: Dataset has significant category imbalance. `furniture/` and `complex/` have only 2 samples each, while `objects/` has 16. Consider this when interpreting per-category results.
 
 | Category | Count | Examples |
 |----------|-------|----------|
@@ -71,16 +75,16 @@ A **Lithuanian Image Captioning Dataset** with:
 | `landscapes/` | 5 | ark, ice, nature, space |
 | `miscellaneous/` | 8 | bubbles, star_wars, structure, game_cones |
 | `furniture/` | 2 | bench, sofa |
-| `tools/` | 6 | cuttlery, pencils, tools |
+| `tools/` | 6 | cutlery, pencils, tools |
 | `activities/` | 3 | sport, firebreathing |
 | `body_part/` | 3 | eye, feet_nails |
 | `clothing/` | 3 | hat, socks, dresses |
 | `complex/` | 2 | people_car, woman_horse |
 | `food/` | 5 | peas, egg |
 
-### Example Dataset Entries
+### Example Entries
 
-**Example 1: People - Simple Object**
+**Example 1: People**
 ```json
 {
   "image": "people/cyclist.jpg",
@@ -89,7 +93,7 @@ A **Lithuanian Image Captioning Dataset** with:
 }
 ```
 
-**Example 2: Nature - Scene Description**
+**Example 2: Nature**
 ```json
 {
   "image": "nature/flowers.jpg",
@@ -98,7 +102,7 @@ A **Lithuanian Image Captioning Dataset** with:
 }
 ```
 
-**Example 3: Complex Scenes - Multi-object Relationships**
+**Example 3: Complex Scenes**
 ```json
 {
   "image": "complex/people_car.jpg",
@@ -109,101 +113,45 @@ A **Lithuanian Image Captioning Dataset** with:
 
 ### Why This Dataset Is Useful
 
-1. **Low-Resource Language Focus**: Specifically targets Lithuanian, a language with minimal representation in large pre-training datasets
-2. **Semantic Diversity**: Spans 13 categories covering everyday objects, people, nature, and complex scenes
-3. **Dual-Language Annotations**: Enables evaluation of both English and Lithuanian caption quality
-4. **Manual Curation**: Every caption is carefully written to be accurate and natural, not auto-translated
-5. **Category Structure**: Semantic organization helps the model learn relationships between similar visual concepts
+> [!WARNING]
+> **Small Dataset**: 79 training samples is limited for deep learning. Model may overfit or underfit. Increasing dataset size to 200+ samples recommended for robust performance.
+
+- **Low-resource language**: Specifically targets Lithuanian with minimal pre-training representation
+- **Semantic diversity**: 13 categories spanning everyday objects, people, nature, and complex scenes
+- **Manual curation**: Accurate, natural captions not auto-translated
+- **Organized structure**: Categorical organization helps model learn visual relationships
 
 ---
 
-## What We've Accomplished
-
-### Dataset Preparation & Validation
-- **Organized 92 images** (79 train + 13 test) into semantic category subfolders
-- **Created structured JSON captions** with category-relative image paths for both train and test
-- **Validated coverage**: 100% of train/test images have corresponding caption entries
-- **Ensured consistency**: No duplicate image keys, no missing file references
-- **Verified split integrity**: No overlapping image paths between `captions_train.json` and `captions_test.json`
-
-### Dataset Structure
+## Project Structure
 
 ```
-data/
-├── images/
-│   ├── train/
-│   │   ├── animals/        (7 images)
-│   │   ├── people/         (14 images)
-│   │   ├── nature/         (5 images)
-│   │   ├── objects/        (16 images)
-│   │   ├── [9 other categories]
-│   │   └── ...
-│   └── test/
-│       ├── food/           (egg.jpg)
-│       ├── objects/        (train.jpg)
-│       └── people/         (girls_umbrella.jpg)
-|       └── [10 other categories]
-├── captions_train.json     (79 entries with category-relative image paths)
-└── captions_test.json      (13 entries for evaluation)
+Deep_learning_assignment2/
+├── main.py                      # Main training and evaluation script
+├── README.md                    # This file
+├── LICENSE                      # Project license
+├── _modules/                    # Core module package
+│   ├── __init__.py              # Package initialization
+│   ├── config.py                # Configuration and hyperparameters
+│   ├── dataset.py               # Dataset class and utilities
+│   ├── model.py                 # Training and evaluation functions
+│   ├── plots.py                 # Visualization and plotting
+│   ├── VLM.py                   # Vision-Language Model loading
+│   └── write.py                 # File I/O utilities
+├── data/                        # Dataset directory
+│   ├── captions_train.json      # Training captions (79 samples)
+│   ├── captions_test.json       # Test captions (13 samples)
+│   └── images/
+│       ├── train/               # Training images (13 categories)
+│       └── test/                # Test images (13 categories)
+└── output/                      # Results and model checkpoints
+    ├── results.txt              # Training and evaluation logs
+    ├── training_loss.png        # Loss and time per epoch
+    ├── training_metrics.png     # Validation metrics (if VAL_SPLIT > 0)
+    └── models/                  # Saved model checkpoints
+        ├── best/                # Best checkpoint by loss
+        └── config.json, model.safetensors, etc.
 ```
-
-### Training Infrastructure
-- **Model initialized**: BLIP (`Salesforce/blip-image-captioning-base`)
-- **Fine-tuning strategy**: Vision encoder frozen, text decoder trained
-- **Training loop implemented**: Batch processing, loss tracking, epoch-based training
-- **Validation strategy**: A held-out subset of the training captions is reserved as validation data, and we track validation F1-score and cosine similarity by comparing generated captions against the held-out references
-- **Best model tracking**: Automatic checkpoint saving on minimum loss
-- **Evaluation pipeline ready**: Test set prepared for caption generation and comparison
-
----
-
-## The workflow
-
-### 1. Setup
-```bash
-# Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-### 2. Configure (Optional)
-Edit `_modules/config.py` to adjust:
-- `EPOCHS`: training iterations
-- `LEARNING_RATE`: optimizer step size
-- `BATCH_SIZE`: samples per batch
-- `NUM_BEAMS`: beam width for stronger candidate search during generation
-- `DO_SAMPLE`: enables sampling mode for generation (`True` by default)
-- `TEMPERATURE`: controls caption diversity when sampling is enabled
-- `VAL_SPLIT`: fraction of training captions reserved for validating the parameters
-- `TRAIN_SUBSET_RATIO` : fraction of data kept for training the model
-
-### Why These Constants Were Chosen
-
-- `LEARNING_RATE = 3e-5`: conservative fine-tuning rate to avoid damaging pre-trained BLIP weights on a small dataset.
-- `BATCH_SIZE = 4`: fits typical student GPU memory while keeping gradient estimates reasonably stable.
-- `EPOCHS = 10`: a rouch estimate before the overfitting starts and signal catches the noise.
-- `NUM_BEAMS = 5`: balances quality and speed for short caption generation.
-- `DO_SAMPLE = True` with `TEMPERATURE = 0.7`: keeps outputs temperature-sensitive while limiting overly random captions.
-- `VAL_SPLIT = 0`: none of the intermediate parameter adjustment was set due to small sample size.
-
-Validation is reported as F1-style token overlap between generated and reference Lithuanian captions as token-level F1-score, and a cosine similarity using CLIP embeddings. These two metrics provide complementary views of caption quality on a small dataset.
-
-Practical tuning guideline:
-- Lower `TEMPERATURE` (e.g., `0.4-0.6`) for safer, more deterministic captions.
-- Higher `TEMPERATURE` (e.g., `0.8-1.0`) for more diverse but less stable phrasing.
-
-> [!NOTE]
-> The `TEMPERATURE` parameter was selected as `0.7` as an optimal trade-off between safety and diversity.
-
-### 3. Run Training & Evaluation
-```bash
-python main.py
-```
-
-Output logged to `output/results.txt`.
 
 ---
 
@@ -250,6 +198,9 @@ main.py                    # Entry point
 
 ## Key Implementation Details
 
+> [!NOTE]
+> **Low-Resource Language Challenge**: Lithuanian has minimal representation in BLIP's pre-training data. Performance will be inherently lower than English. This is expected behavior, not a bug.
+
 ### Fine-Tuning Strategy
 
 ```python
@@ -269,6 +220,33 @@ This approach:
 - **Adapts language generation** to Lithuanian
 - **Prevents catastrophic forgetting** on small datasets
 
+### Hyperparameter Tuning Reference
+
+| Parameter | Config Variable | Typical Default | Current Value | Description |
+|-----------|-----------------|-----------------|----------------|-------------|
+| **Training Epochs** | `EPOCHS` | 5-10 | 10 | Number of complete passes through training data |
+| **Learning Rate** | `LEARNING_RATE` | 1e-4 to 1e-5 | 3e-5 | AdamW optimizer step size (conservative for fine-tuning) |
+| **Batch Size** | `BATCH_SIZE` | 16-32 | 8 | Samples per gradient update (tuned for GPU memory) |
+| **Validation Split** | `VAL_SPLIT` | 0.2 | 0.1 | Fraction of training data reserved for validation |
+| **Train Subset Ratio** | `TRAIN_SUBSET_RATIO` | 1.0 | 1.0 | Fraction of training data to use (1.0 = all data) |
+| **Beam Search Width** | `NUM_BEAMS` | 1 | 5 | Number of beams for beam search (1 = greedy) |
+| **Sampling Mode** | `DO_SAMPLE` | False | True | Enable temperature-based sampling for diversity |
+| **Temperature** | `TEMPERATURE` | 1.0 | 0.7 | Sampling temperature (lower = deterministic) |
+| **Max New Tokens** | `max_new_tokens` | 50-128 | 50 | Maximum caption length (tokens) |
+| **Repetition Penalty** | `repetition_penalty` | 1.0 | 1.2 | Penalty for repeated n-grams (>1.0 discourages repetition) |
+| **No Repeat N-gram Size** | `no_repeat_ngram_size` | 0 | 3 | Block repeated n-grams of this size |
+| **Early Stopping** | `early_stopping` | False | True | Stop search when no improvements found |
+
+**Configuration Location:** [`_modules/config.py`](_modules/config.py)
+
+**Key Tuning Guidelines:**
+- ↑ **Increase `EPOCHS`** if model is underfitting (improving loss)
+- ↓ **Decrease `LEARNING_RATE`** if training is unstable (spikes/NaN)
+- ↓ **Decrease `BATCH_SIZE`** if out of memory; ↑ if training is slow
+- ↑ **Increase `TEMPERATURE`** for more diverse captions; ↓ for more deterministic
+- ↑ **Increase `NUM_BEAMS`** for higher quality (slower); ↓ for faster inference
+- ↓ **Decrease `repetition_penalty`** if model avoids needed repetition
+
 ---
 
 ## Example Pipeline Results
@@ -277,7 +255,7 @@ This approach:
 
 We can observe the decline in loss which indicates a proper learning (learning parameter is set correctly) and at the end starting stabilizing, indicating a more probable overfitting for even higher epoch numbers.
 
-![Sport run](data/images/test/activities/sport_run.jpg)
+<img src="data/images/test/activities/sport_run.jpg" alt="Sport run" width="320">
 
 TEST activities/sport_run.jpg
 Pred_LT: the men ' s 100m hurdles at the iaafc
@@ -288,7 +266,7 @@ Precision: 0.0000
 Recall:    0.0000
 F1:        0.0000
 
-![Sheep](data/images/test/animals/sheep.jpg)
+<img src="data/images/test/animals/sheep.jpg" alt="Sheep" width="320">
 
 TEST animals/sheep.jpg
 Pred_LT: eziukas ir baltas sukrautos ant grindu
@@ -299,7 +277,7 @@ Precision: 0.1667
 Recall:    0.0909
 F1:        0.1176
 
-![Hands feet](data/images/test/body_part/hands_feet.jpg)
+<img src="data/images/test/body_part/hands_feet.jpg" alt="Hands feet" width="320">
 
 TEST body_part/hands_feet.jpg
 Pred_LT: hands holding a baby ' s foot
@@ -310,7 +288,7 @@ Precision: 0.0000
 Recall:    0.0000
 F1:        0.0000
 
-![Sweater](data/images/test/clothing/sweater.jpg)
+<img src="data/images/test/clothing/sweater.jpg" alt="Sweater" width="320">
 
 TEST clothing/sweater.jpg
 Pred_LT: ralpho sweaters, blau
@@ -321,7 +299,7 @@ Precision: 0.0000
 Recall:    0.0000
 F1:        0.0000
 
-![Mosaic](data/images/test/complex/mosaic.jpg)
+<img src="data/images/test/complex/mosaic.jpg" alt="Mosaic" width="320">
 
 TEST complex/mosaic.jpg
 Pred_LT: vyras, leidziantis dumus is savo burnos
@@ -332,7 +310,7 @@ Precision: 0.0000
 Recall:    0.0000
 F1:        0.0000
 
-![Lemons](data/images/test/food/lemons.jpg)
+<img src="data/images/test/food/lemons.jpg" alt="Lemons" width="320">
 
 TEST food/lemons.jpg
 Pred_LT: sliced lemons on a white background
@@ -343,7 +321,7 @@ Precision: 0.0000
 Recall:    0.0000
 F1:        0.0000
 
-![Bed](data/images/test/furniture/bed.jpg)
+<img src="data/images/test/furniture/bed.jpg" alt="Bed" width="320">
 
 TEST furniture/bed.jpg
 Pred_LT: bed is made of wood
@@ -354,7 +332,7 @@ Precision: 0.0000
 Recall:    0.0000
 F1:        0.0000
 
-![Nature](data/images/test/landscapes/nature.jpg)
+<img src="data/images/test/landscapes/nature.jpg" alt="Nature" width="320">
 
 TEST landscapes/nature.jpg
 Pred_LT: medinis, laikantys ezero su keliu ir zaluma
@@ -365,7 +343,7 @@ Precision: 0.1429
 Recall:    0.1111
 F1:        0.1250
 
-![Rocks](data/images/test/miscellaneous/rocks.jpg)
+<img src="data/images/test/miscellaneous/rocks.jpg" alt="Rocks" width="320">
 
 TEST miscellaneous/rocks.jpg
 Pred_LT: vyras, sedintys ant zemes
@@ -376,7 +354,7 @@ Precision: 0.2500
 Recall:    0.1000
 F1:        0.1429
 
-![Forest](data/images/test/nature/forest.jpg)
+<img src="data/images/test/nature/forest.jpg" alt="Forest" width="320">
 
 TEST nature/forest.jpg
 Pred_LT: sunlight shining through the trees in the forest
@@ -387,7 +365,7 @@ Precision: 0.0000
 Recall:    0.0000
 F1:        0.0000
 
-![Tram](data/images/test/objects/tram.jpg)
+<img src="data/images/test/objects/tram.jpg" alt="Tram" width="320">
 
 TEST objects/tram.jpg
 Pred_LT: blue and white train
@@ -398,7 +376,7 @@ Precision: 0.0000
 Recall:    0.0000
 F1:        0.0000
 
-![Woman](data/images/test/people/woman.jpg)
+<img src="data/images/test/people/woman.jpg" alt="Woman" width="320">
 
 TEST people/woman.jpg
 Pred_LT: a woman in a black dress is smiling at the camera
@@ -409,7 +387,7 @@ Precision: 0.0000
 Recall:    0.0000
 F1:        0.0000
 
-![Drill](data/images/test/tools/drill.jpg)
+<img src="data/images/test/tools/drill.jpg" alt="Drill" width="320">
 
 TEST tools/drill.jpg
 Pred_LT: a driller on a white background
@@ -424,6 +402,10 @@ TEST summary -> evaluated: 13, skipped: 0
 Average F1: 0.0297
 
 The average F1 score suggests that the predictions are way off and need better generalization - bigger dataset, less complex caption database for images.
+
+> [!CAUTION]
+> **English Dominance in Predictions**: Some generated captions still contain English words, causing CLIP to rate them higher than pure Lithuanian ground truth. This occurs because CLIP is trained on English-heavy datasets. Expect lower F1 scores but don't discard the model—it's a known limitation of the evaluation pipeline, not necessarily poor caption quality.
+
 Interestingly enough, sometimes the predicted cosine similarity is higher than the ground truth's. The reason behind that is the dominance of english words in the prediction: if there are still english words dominant in the predicted caption, CLIP model fancies the predicted over the lithuanian.
 Moreover, when recall and precision are higher than 0.01, it is apparent that mostly precision is higher than recall, which indicates that the model struggles to find the ground truth labels rather than the positives prediction accuracy itself.
 
@@ -431,8 +413,20 @@ Moreover, when recall and precision are higher than 0.01, it is apparent that mo
 
 ## Further Research
 
--- Add more images to increase dataset diversity
--- Implement additional evaluation metrics (CIDEr, METEOR)
+> [!NOTE]
+> These improvements could significantly boost model performance. Prioritize expanding the dataset first—more data has the highest ROI for low-resource language tasks.
+
+- Add more images to increase dataset diversity (target 200+ for robust performance)
+- Implement additional evaluation metrics (CIDEr, METEOR)
 - Support multi-reference captions per image
 - Test on other low-resource languages
 - Compare fine-tuned vs. base model performance
+
+## Submission Readiness Checklist
+
+- Be ready to explain how the dataset was created, including where the images came from, how the Lithuanian captions were written or checked, and why the set is original.
+- Be ready to state the dataset size and structure clearly: 79 training images, 13 test images, and 13 semantic categories.
+- Be ready to explain the fine-tuning method: BLIP was pretrained first, then fine-tuned on the Lithuanian captions, with the vision encoder frozen and the text side updated.
+- Be ready to show the saved checkpoints and training logs, especially the `output/results.txt` file and the saved model folders.
+- Be ready to demonstrate the model on new instructor-provided inputs and describe how the dataset influenced the output.
+- LoRA or DoRA is not required for this assignment; the current fine-tuning setup is already valid as a standard VLM fine-tuning approach.

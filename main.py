@@ -2,6 +2,7 @@
 
 import os
 import json
+import random
 import torch as th
 from dotenv import load_dotenv
 import _modules.config as cfg
@@ -10,7 +11,6 @@ from _modules.write import clear_file, write_to_file
 from _modules.model import train, evaluate
 from _modules.plots import plot_training_curves
 from transformers import CLIPProcessor, CLIPModel
-from _modules.plots import plot_training_curves
 
 load_dotenv()
 token = os.getenv("HF_TOKEN")
@@ -33,12 +33,36 @@ if num_all_train_samples > 0 and len(train_data) == 0:
         "Increase TRAIN_SUBSET_RATIO for a non-empty training set."
     )
 
+val_split = float(getattr(cfg, "VAL_SPLIT", 0.0))
+val_data = []
+if 0.0 < val_split < 1.0 and len(train_data) > 1:
+    shuffled_train_data = train_data[:]
+    random.Random(42).shuffle(shuffled_train_data)
+    val_size = int(round(len(shuffled_train_data) * val_split))
+    val_size = max(1, min(len(shuffled_train_data) - 1, val_size))
+    val_data = shuffled_train_data[-val_size:]
+    train_data = shuffled_train_data[:-val_size]
+elif val_split > 0.0:
+    write_to_file(results_file, "Validation split requested but not enough samples to create a hold-out set")
+
 write_to_file(results_file, f"TRAIN set JSON: {cfg.CAPTIONS_TRAIN}")
 write_to_file(results_file, f"Total TRAIN samples available: {num_all_train_samples}")
 write_to_file(results_file, f"TRAIN_SUBSET_RATIO: {train_subset_ratio}")
 write_to_file(results_file, f"Loaded {len(train_data)} TRAIN samples")
+write_to_file(results_file, f"VAL_SPLIT: {val_split}")
+write_to_file(results_file, f"Loaded {len(val_data)} VALIDATION samples")
 
-load_dir = cfg.BEST_MODEL_SAVE_DIR if getattr(cfg, 'USE_BEST_MODEL', False) and os.path.exists(cfg.BEST_MODEL_SAVE_DIR) else None
+load_dir = None
+if getattr(cfg, 'USE_BEST_MODEL', False):
+    latest_path = os.path.join(cfg.BEST_MODEL_SAVE_DIR, "latest.txt")
+    if os.path.exists(latest_path):
+        with open(latest_path, "r", encoding="utf-8") as latest_file:
+            candidate_dir = latest_file.read().strip()
+        if candidate_dir:
+            load_dir = candidate_dir
+    elif os.path.exists(cfg.BEST_MODEL_SAVE_DIR):
+        load_dir = cfg.BEST_MODEL_SAVE_DIR
+
 if load_dir:
     write_to_file(results_file, f"Loading best model from {cfg.BEST_MODEL_SAVE_DIR}")
 
@@ -52,10 +76,10 @@ optimizer = th.optim.AdamW(
     lr=cfg.LEARNING_RATE
 )
 
-model, loss_history, epoch_times = train(model, processor, optimizer, train_data, device, results_file)
+model, loss_history, epoch_times, val_metrics = train(model, processor, optimizer, train_data, device, results_file, val_data=val_data)
 write_to_file(results_file, f"Total training time: {sum(epoch_times):.2f}s")
 
-plot_training_curves(loss_history, epoch_times)
+plot_training_curves(loss_history, epoch_times, val_metrics=val_metrics)
 
 with open(cfg.CAPTIONS_TEST, "r", encoding="utf-8") as f:
     test_data = json.load(f)

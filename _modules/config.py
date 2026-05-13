@@ -3,9 +3,9 @@ import torch as th
 EPOCHS = 10
 TEMPERATURE = 0.7
 LEARNING_RATE = 3e-5
-BATCH_SIZE = 5
+BATCH_SIZE = 8
 NUM_BEAMS = 5
-VAL_SPLIT = 0
+VAL_SPLIT = 0.1
 TRAIN_SUBSET_RATIO = 1.0
 
 VLM_NAME = "Salesforce/blip-image-captioning-base"

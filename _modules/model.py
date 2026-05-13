@@ -36,9 +36,60 @@ def token_f1(pred, gt):
 
     return precision, recall, f1
 
-def train(model, processor, optimizer, data_dict, device, results_file, save_best=cfg.SAVE_BEST):
+def _generation_kwargs():
+    gen_kwargs = {
+        "max_new_tokens": 50,
+        "num_beams": cfg.NUM_BEAMS,
+        "repetition_penalty": 1.2,
+        "no_repeat_ngram_size": 3,
+        "early_stopping": True,
+    }
+
+    if getattr(cfg, "DO_SAMPLE", True):
+        gen_kwargs["do_sample"] = True
+        gen_kwargs["temperature"] = cfg.TEMPERATURE
+
+    return gen_kwargs
+
+def evaluate_epoch_metrics(model, processor, data_dict, device):
+    if not data_dict:
+        return None
+
+    dataset = CaptionDataset(data_dict, cfg.IMAGE_DIR, processor)
+    loader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn=collate_fn)
+
+    total_precision = 0.0
+    total_recall = 0.0
+    total_f1 = 0.0
+    count = 0
+
+    model.eval()
+    with th.no_grad():
+        for batch in loader:
+            image = batch["image"][0]
+            caption = batch["caption"][0]
+
+            inputs = processor(images=image, return_tensors="pt").to(device)
+            out = model.generate(**inputs, **_generation_kwargs())
+            pred_lt = processor.decode(out[0], skip_special_tokens=True)
+
+            precision, recall, f1 = token_f1(pred_lt, caption)
+            total_precision += precision
+            total_recall += recall
+            total_f1 += f1
+            count += 1
+
+    if count == 0:
+        return None
+
+    return total_precision / count, total_recall / count, total_f1 / count
+
+def train(model, processor, optimizer, data_dict, device, results_file, val_data=None, save_best=cfg.SAVE_BEST):
     loss_history = []
     epoch_times = []
+    val_precision_history = []
+    val_recall_history = []
+    val_f1_history = []
     first_epoch_sample_index = 0
 
     model.to(device)
@@ -47,6 +98,10 @@ def train(model, processor, optimizer, data_dict, device, results_file, save_bes
     loader = DataLoader(dataset, batch_size=cfg.BATCH_SIZE, shuffle=True, collate_fn=collate_fn)
 
     best_loss = float("inf") if save_best else None
+    best_run_root = None
+    if save_best:
+        best_run_root = os.path.join(cfg.BEST_MODEL_SAVE_DIR, f"run_{time.strftime('%Y%m%d-%H%M%S')}")
+        os.makedirs(best_run_root, exist_ok=True)
 
     for epoch in range(cfg.EPOCHS):
         epoch_start_time = time.time()
@@ -90,20 +145,38 @@ def train(model, processor, optimizer, data_dict, device, results_file, save_bes
 
         avg_loss = total_loss / count if count > 0 else 0
         loss_history.append(avg_loss)
+
+        val_metrics = evaluate_epoch_metrics(model, processor, val_data, device) if val_data else None
         
         epoch_time = time.time() - epoch_start_time
         epoch_times.append(epoch_time)
-        write_to_file(results_file, f"Epoch {epoch + 1}, Average Loss: {avg_loss:.4f}, Time: {epoch_time:.2f}s")
+        if val_metrics:
+            val_precision, val_recall, val_f1 = val_metrics
+        else:
+            # ensure zeros are recorded so plotting shows the lines from epoch 1
+            val_precision, val_recall, val_f1 = 0.0, 0.0, 0.0
+
+        val_precision_history.append(val_precision)
+        val_recall_history.append(val_recall)
+        val_f1_history.append(val_f1)
+
+        write_to_file(
+            results_file,
+            f"Epoch {epoch + 1}, Average Loss: {avg_loss:.4f}, Val Precision: {val_precision:.4f}, Val Recall: {val_recall:.4f}, Val F1: {val_f1:.4f}, Time: {epoch_time:.2f}s"
+        )
 
         # save best-performing model by lowest average loss
         if save_best:
             try:
                 if avg_loss < best_loss:
                     best_loss = avg_loss
-                    best_dir = cfg.BEST_MODEL_SAVE_DIR
+                    best_dir = os.path.join(best_run_root, f"epoch_{epoch + 1:03d}") if best_run_root else cfg.BEST_MODEL_SAVE_DIR
                     os.makedirs(best_dir, exist_ok=True)
                     model.save_pretrained(best_dir)
                     processor.save_pretrained(best_dir)
+                    os.makedirs(cfg.BEST_MODEL_SAVE_DIR, exist_ok=True)
+                    with open(os.path.join(cfg.BEST_MODEL_SAVE_DIR, "latest.txt"), "w", encoding="utf-8") as latest_file:
+                        latest_file.write(best_dir)
                     write_to_file(results_file, f"New best model saved (Epoch {epoch + 1})\
                         with avg_loss {avg_loss:.4f} -> {best_dir}")
             except Exception as e:
@@ -114,7 +187,7 @@ def train(model, processor, optimizer, data_dict, device, results_file, save_bes
     model.save_pretrained(cfg.MODEL_SAVE_DIR)
     processor.save_pretrained(cfg.MODEL_SAVE_DIR)
 
-    return model, loss_history, epoch_times
+    return model, loss_history, epoch_times, (val_precision_history, val_recall_history, val_f1_history)
 
 def evaluate(model, processor, data_dict, device, results_file, clip_model, clip_processor):
     model.to(device)
@@ -145,22 +218,9 @@ def evaluate(model, processor, data_dict, device, results_file, clip_model, clip
         inputs = processor(images=image, return_tensors="pt").to(device)
 
         with th.no_grad():
-            gen_kwargs = {
-                "max_new_tokens": 50,
-                "num_beams": cfg.NUM_BEAMS,
-                "repetition_penalty": 1.2,
-                "no_repeat_ngram_size": 3,
-                "early_stopping": True,
-            }
-
-            # `temperature` only applies to sampling-based decoding.
-            if getattr(cfg, "DO_SAMPLE", True):
-                gen_kwargs["do_sample"] = True
-                gen_kwargs["temperature"] = cfg.TEMPERATURE
-
             out = model.generate(
                 **inputs,
-                **gen_kwargs,
+                **_generation_kwargs(),
             )
 
         pred_lt = processor.decode(out[0], skip_special_tokens=True)
