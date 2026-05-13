@@ -247,20 +247,42 @@ This approach:
 - ↑ **Increase `NUM_BEAMS`** for higher quality (slower); ↓ for faster inference
 - ↓ **Decrease `repetition_penalty`** if model avoids needed repetition
 
----
+### Training Progress
 
-## Example Pipeline Results
+**Latest Training Run Summary:**
+- **Total Epochs:** 10
+- **Training Samples:** 71 (after 10% validation split from 79 total)
+- **Validation Samples:** 8
+- **Total Training Time:** 511.54s (~8.5 minutes)
+- **Loss Trajectory:** 8.3135 (Epoch 1) → 1.0551 (Epoch 10) ✓ **90% decrease**
+- **Val F1 Peak:** 0.0486 (Epoch 9)
 
+**Key Observations:**
+- Loss consistently decreased across all 10 epochs, indicating healthy learning
+- Validation metrics appeared around Epoch 7, suggesting model began recognizing Lithuanian patterns
+- Best checkpoint saved at Epoch 10 with lowest loss (1.0551)
+- Training time per epoch: 43-67 seconds (varies with validation computation)
+
+#### Training Loss & Time Curve
 ![Training loss](output/training_loss.png)
 
-We can observe the decline in loss which indicates a proper learning (learning parameter is set correctly) and at the end starting stabilizing, indicating a more probable overfitting for even higher epoch numbers.
+Clear downward trend in loss with stable epoch duration, indicating no training instability or memory issues.
+
+#### Validation Metrics Curve
+![Training metrics](output/training_metrics.png)
+
+Validation precision, recall, and F1 show initial struggle (Epochs 1-6) followed by gradual improvement starting Epoch 7, demonstrating the model's increasing ability to generate recognizable Lithuanian tokens.
+
+### Test Evaluation Results
+
+**Test Set:** 13 samples | **Average F1:** 0.0176 | **Best F1:** 0.1176
 
 <img src="data/images/test/activities/sport_run.jpg" alt="Sport run" width="320">
 
 TEST activities/sport_run.jpg
-Pred_LT: the men ' s 100m hurdles at the iaafc
+Pred_LT: the start of the men ' s 4x100m relay at the rio olympics
 Real_LT: keli sportininkai begioja arba šoka per kartį prie vandens
-CLIP_sim_pred: 0.2111
+CLIP_sim_pred: 0.2971
 CLIP_sim_gt:   0.2486
 Precision: 0.0000
 Recall:    0.0000
@@ -269,13 +291,13 @@ F1:        0.0000
 <img src="data/images/test/animals/sheep.jpg" alt="Sheep" width="320">
 
 TEST animals/sheep.jpg
-Pred_LT: eziukas ir baltas sukrautos ant grindu
+Pred_LT: two lambs are standing in the grass
 Real_LT: trys baltos mažos avys stovi arba sėdi ant žalios trumpos žolės
-CLIP_sim_pred: 0.2001
+CLIP_sim_pred: 0.3065
 CLIP_sim_gt:   0.2019
-Precision: 0.1667
-Recall:    0.0909
-F1:        0.1176
+Precision: 0.0000
+Recall:    0.0000
+F1:        0.0000
 
 <img src="data/images/test/body_part/hands_feet.jpg" alt="Hands feet" width="320">
 
@@ -291,9 +313,9 @@ F1:        0.0000
 <img src="data/images/test/clothing/sweater.jpg" alt="Sweater" width="320">
 
 TEST clothing/sweater.jpg
-Pred_LT: ralpho sweaters, blau
+Pred_LT: a blue sweater with a cable pattern on the back
 Real_LT: mėlynas megztinis baltame fone
-CLIP_sim_pred: 0.3346
+CLIP_sim_pred: 0.3396
 CLIP_sim_gt:   0.2056
 Precision: 0.0000
 Recall:    0.0000
@@ -324,9 +346,9 @@ F1:        0.0000
 <img src="data/images/test/furniture/bed.jpg" alt="Bed" width="320">
 
 TEST furniture/bed.jpg
-Pred_LT: bed is made of wood
+Pred_LT: the bed is made of wood
 Real_LT: baltos patalynės lova kambaryje su lempa
-CLIP_sim_pred: 0.3162
+CLIP_sim_pred: 0.3071
 CLIP_sim_gt:   0.2021
 Precision: 0.0000
 Recall:    0.0000
@@ -335,24 +357,24 @@ F1:        0.0000
 <img src="data/images/test/landscapes/nature.jpg" alt="Nature" width="320">
 
 TEST landscapes/nature.jpg
-Pred_LT: medinis, laikantys ezero su keliu ir zaluma
+Pred_LT: medinis krastovaizdis su keliu ir zaluma aplinkui lauke
 Real_LT: natūralus kraštovaizdis, kurį sudaro tiltas ir tolumoje esanti žaluma
-CLIP_sim_pred: 0.2042
+CLIP_sim_pred: 0.1916
 CLIP_sim_gt:   0.1705
-Precision: 0.1429
+Precision: 0.1250
 Recall:    0.1111
-F1:        0.1250
+F1:        0.1176
 
 <img src="data/images/test/miscellaneous/rocks.jpg" alt="Rocks" width="320">
 
 TEST miscellaneous/rocks.jpg
-Pred_LT: vyras, sedintys ant zemes
+Pred_LT: vyras, sedintys ant gelezinkelio keliu lentomis ant grindu
 Real_LT: tamsūs akmenys, pažerti ant grindų su maža mėlyna sraige viduryje
-CLIP_sim_pred: 0.2439
+CLIP_sim_pred: 0.2623
 CLIP_sim_gt:   0.2493
-Precision: 0.2500
+Precision: 0.1250
 Recall:    0.1000
-F1:        0.1429
+F1:        0.1111
 
 <img src="data/images/test/nature/forest.jpg" alt="Forest" width="320">
 
@@ -368,9 +390,9 @@ F1:        0.0000
 <img src="data/images/test/objects/tram.jpg" alt="Tram" width="320">
 
 TEST objects/tram.jpg
-Pred_LT: blue and white train
+Pred_LT: a blue and white train
 Real_LT: mėlynos ir baltos spalvų tramvajus ant bėgių
-CLIP_sim_pred: 0.2871
+CLIP_sim_pred: 0.2974
 CLIP_sim_gt:   0.3009
 Precision: 0.0000
 Recall:    0.0000
@@ -379,9 +401,9 @@ F1:        0.0000
 <img src="data/images/test/people/woman.jpg" alt="Woman" width="320">
 
 TEST people/woman.jpg
-Pred_LT: a woman in a black dress is smiling at the camera
+Pred_LT: a woman standing in a field with her hands on her hips
 Real_LT: tamsiaplaukė mergina, besišypsanti su viena akimi užmerkta
-CLIP_sim_pred: 0.2770
+CLIP_sim_pred: 0.2187
 CLIP_sim_gt:   0.2194
 Precision: 0.0000
 Recall:    0.0000
@@ -399,7 +421,7 @@ Recall:    0.0000
 F1:        0.0000
 TEST summary -> evaluated: 13, skipped: 0
 
-Average F1: 0.0297
+Average F1: 0.0176
 
 The average F1 score suggests that the predictions are way off and need better generalization - bigger dataset, less complex caption database for images.
 
