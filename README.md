@@ -196,7 +196,32 @@ main.py                    # Entry point
 
 ---
 
-## Key Implementation Details
+## Recent Pipeline Updates
+
+### v2 Enhancements
+
+**Data Augmentation:**
+- ✨ **Mosaic Augmentation:** 50% of training batches create 2×2 image mosaics, combining visual contexts and improving model robustness
+- Combined captions per mosaic for richer training signal
+- Helps prevent overfitting on small dataset
+
+**Experiment Infrastructure:**
+- ✨ **OpenImages Domain Comparison:** Three-way model evaluation (main model on Lithuanian → main model on OpenImages → OpenImages model on OpenImages)
+- Automatic FiftyOne Zoo dataset building with `horse`, `dog`, `background` classes
+- Visual test preview with 5 random samples showing predicted vs ground truth captions
+- BLEU-1 and CIDEr-1 metrics for simple single-word caption evaluation
+
+**Improved Metrics:**
+- Parameterized metric computation (supports n-gram sizes 1-4)
+- Per-sample metric tracking during evaluation
+- Detailed logging with metric suffix formatting
+
+**Code Organization:**
+- [`_modules/experiment.py`](_modules/experiment.py): Dedicated OpenImages experiment orchestration
+- [`_modules/dataset.py`](_modules/dataset.py): Flexible dataset class with mosaic support
+- [`_modules/model.py`](_modules/model.py): Enhanced training and evaluation with n-gram configuration
+
+---
 
 > [!NOTE]
 > **Low-Resource Language Challenge**: Lithuanian has minimal representation in BLIP's pre-training data. Performance will be inherently lower than English. This is expected behavior, not a bug.
@@ -220,6 +245,33 @@ This approach:
 - **Adapts language generation** to Lithuanian
 - **Prevents catastrophic forgetting** on small datasets
 
+### Data Augmentation
+
+#### Mosaic Augmentation
+
+The training pipeline applies **mosaic data augmentation** to enhance model robustness and improve generalization on limited data:
+
+**How it works:**
+- During training, 50% of batches apply mosaic augmentation
+- Combines 4 images into a single 2×2 grid image (output: 224×224, each quadrant: 112×112)
+- Combined captions are joined with `+` separator (e.g., "a horse + a dog + nature + background")
+- The augmented batch includes both original images AND mosaic versions, increasing batch diversity
+
+**Purpose:**
+- Forces the model to learn spatial relationships and context from multiple images
+- Improves model's ability to handle complex multi-object scenes
+- Increases effective training data without requiring additional annotations
+- Regularization effect helps prevent overfitting on small datasets
+
+**Configuration:**
+- Mosaic probability: 50% per batch during training
+- Applied in `collate_fn()` with `apply_mosaic=True`
+- Evaluation and test phases skip augmentation for fair metric comparison
+
+**Implementation details** are in [`_modules/dataset.py`](_modules/dataset.py):
+- `create_mosaic(images, size=224)`: Creates 2×2 grid from 4 images
+- `collate_fn(batch, apply_mosaic=True, mosaic_probability=0.5)`: Applies augmentation during batch collation
+
 ### Hyperparameter Tuning Reference
 
 | Parameter | Config Variable | Typical Default | Current Value | Description |
@@ -236,6 +288,7 @@ This approach:
 | **Repetition Penalty** | `repetition_penalty` | 1.0 | 1.2 | Penalty for repeated n-grams (>1.0 discourages repetition) |
 | **No Repeat N-gram Size** | `no_repeat_ngram_size` | 0 | 3 | Block repeated n-grams of this size |
 | **Early Stopping** | `early_stopping` | False | True | Stop search when no improvements found |
+| **Mosaic Augmentation Probability** | (collate_fn) | 0.5 | 0.5 | Probability of applying 2×2 mosaic augmentation per batch |
 
 **Configuration Location:** [`_modules/config.py`](_modules/config.py)
 
@@ -246,6 +299,83 @@ This approach:
 - ↑ **Increase `TEMPERATURE`** for more diverse captions; ↓ for more deterministic
 - ↑ **Increase `NUM_BEAMS`** for higher quality (slower); ↓ for faster inference
 - ↓ **Decrease `repetition_penalty`** if model avoids needed repetition
+
+### Optional OpenImages Experiment
+
+The repository includes an opt-in experiment path for a **three-way model comparison** using the FiftyOne Open Images dataset with simple, single-word captions.
+
+#### Experiment Overview
+
+**Purpose:** Evaluate model performance across three scenarios:
+1. Main model (trained on Lithuanian dataset) → evaluated on Lithuanian test set
+2. Main model (trained on Lithuanian dataset) → evaluated on OpenImages test set
+3. OpenImages model (trained from scratch on OpenImages) → evaluated on OpenImages test set
+
+This comparison reveals:
+- How well the main model generalizes to different image domains
+- Whether domain-specific training improves performance
+- The impact of dataset domain shift on caption quality
+
+#### Enabling the Experiment
+
+Set these configuration flags in [`_modules/config.py`](_modules/config.py):
+
+```python
+USE_EXPERIMENT = True                    # Enable all experiments
+USE_OPENIMAGES_EXPERIMENT = True         # Enable OpenImages experiment
+```
+
+#### Dataset Details
+
+- **Source:** FiftyOne Zoo Open Images v7 with object detection labels
+- **Classes:** `horse`, `dog`, `background` (negative samples without these objects)
+- **Simple Captions:** Single-word labels ("a horse", "a dog", "a background")
+- **Split:** 80% training / 20% test (per-class stratified)
+- **Max Samples per Class:** Configurable (default: 100)
+
+#### Output Files
+
+Results are saved in `output/` directory:
+
+| File | Description |
+|------|-------------|
+| `output/results.txt` | Main model training logs + all experiment results |
+| `output/openimages_test_preview.png` | Visual preview: 5 test images with predicted vs ground truth captions |
+| `output/models/best/` | Best checkpoint from main training |
+| `data/openimages_simple/captions_train.json` | Training manifest (auto-generated) |
+| `data/openimages_simple/captions_test.json` | Test manifest (auto-generated) |
+
+#### Evaluation Metrics
+
+The experiment uses **BLEU-1** and **CIDEr-1** metrics (single n-gram):
+
+- **BLEU-1:** Precision of 1-word overlaps with ground truth
+- **CIDEr-1:** Cosine similarity between caption 1-gram vectors with IDF weighting
+- Simpler than BLEU-4/CIDEr-4 used for main task due to single-word captions
+
+#### Expected Behavior
+
+- Main model typically achieves BLEU-1: 0.5-1.0 on OpenImages (domain shift effect)
+- OpenImages-trained model should achieve higher BLEU-1 on OpenImages test (domain-specific training)
+- Test preview shows visual evidence of caption quality for 5 random test samples
+
+#### Pipeline Integration
+
+When `USE_OPENIMAGES_EXPERIMENT=True`, the main pipeline performs these additional steps after main training:
+
+```
+1. Evaluate main model on OpenImages test set (inference only)
+   → Logs results to output/results.txt
+2. Build OpenImages dataset from FiftyOne Zoo
+   → Creates data/openimages_simple/ directory
+   → Generates JSON captions manifests
+3. Train new model on OpenImages captions
+   → Uses same BLIP fine-tuning approach
+   → Saves checkpoints to output/models/best/
+4. Evaluate OpenImages model on OpenImages test set
+   → Computes BLEU-1 and CIDEr-1 metrics
+5. Generate visual preview
+   → Saves 5-image subplot to output/openimages_test_preview.png
 
 ### Training Progress
 

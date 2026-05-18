@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 import _modules.config as cfg
 
-def plot_training_curves(loss_history, time_history, val_metrics=None):
+def plot_training_curves(loss_history, time_history, val_metrics=None, metric_n=4):
     epochs = list(range(1, len(loss_history) + 1))
     fig, ax1 = plt.subplots()
     
@@ -43,19 +43,18 @@ def plot_training_curves(loss_history, time_history, val_metrics=None):
     plt.show()
     plt.close(fig)
 
-    # If validation metrics were provided, plot them too (precision/recall/f1)
+    # If validation metrics were provided, plot them too.
     if val_metrics:
-        val_prec, val_rec, val_f1 = val_metrics
+        val_bleu4, val_cider4 = val_metrics
         fig2, ax = plt.subplots()
-        ax.plot(epochs, val_prec, marker='o', linestyle='-', color='#2ca02c', label='Val Precision')
-        ax.plot(epochs, val_rec, marker='o', linestyle='-', color='#1f77b4', label='Val Recall')
-        ax.plot(epochs, val_f1, marker='o', linestyle='-', color='#d62728', label='Val F1')
+        ax.plot(epochs, val_bleu4, marker='o', linestyle='-', color='#2ca02c', label=f'Val BLEU-{metric_n}')
+        ax.plot(epochs, val_cider4, marker='o', linestyle='-', color='#1f77b4', label=f'Val CIDEr-{metric_n}')
+        
         ax.set_xlabel('Epoch')
         ax.set_ylabel('Score')
-        ax.set_ylim(0.0, 1.0)
         ax.grid(True, linestyle='--', alpha=0.3)
         ax.legend(loc='upper right')
-        plt.title('Validation Precision / Recall / F1 per Epoch')
+        plt.title(f'Validation BLEU-{metric_n} / CIDEr-{metric_n} per Epoch')
         fig2.savefig(os.path.join(cfg.OUTPUT_DIR, 'training_metrics.png'), dpi=200, bbox_inches='tight')
         plt.show()
         plt.close(fig2)

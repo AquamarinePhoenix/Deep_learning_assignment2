@@ -181,3 +181,5 @@ cython_debug/
 .cursorindexingignore
 
 output/
+data/openimages_simple
+data/images

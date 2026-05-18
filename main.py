@@ -10,7 +10,7 @@ from _modules.VLM import load_VLM
 from _modules.write import clear_file, write_to_file
 from _modules.model import train, evaluate
 from _modules.plots import plot_training_curves
-from transformers import CLIPProcessor, CLIPModel
+from _modules.experiment import run_openimages_experiment, evaluate_main_model_on_openimages
 
 load_dotenv()
 token = os.getenv("HF_TOKEN")
@@ -76,10 +76,13 @@ optimizer = th.optim.AdamW(
     lr=cfg.LEARNING_RATE
 )
 
-model, loss_history, epoch_times, val_metrics = train(model, processor, optimizer, train_data, device, results_file, val_data=val_data)
-write_to_file(results_file, f"Total training time: {sum(epoch_times):.2f}s")
+if load_dir:
+    write_to_file(results_file, "USE_BEST_MODEL is enabled; skipping training and evaluating the loaded checkpoint only")
+else:
+    model, loss_history, epoch_times, val_metrics = train(model, processor, optimizer, train_data, device, results_file, val_data=val_data)
+    write_to_file(results_file, f"Total training time: {sum(epoch_times):.2f}s")
 
-plot_training_curves(loss_history, epoch_times, val_metrics=val_metrics)
+    plot_training_curves(loss_history, epoch_times, val_metrics=val_metrics)
 
 with open(cfg.CAPTIONS_TEST, "r", encoding="utf-8") as f:
     test_data = json.load(f)
@@ -87,8 +90,15 @@ with open(cfg.CAPTIONS_TEST, "r", encoding="utf-8") as f:
 write_to_file(results_file, f"TEST set JSON: {cfg.CAPTIONS_TEST}")
 write_to_file(results_file, f"Loaded {len(test_data)} TEST samples")
 
-clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
-clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+model = evaluate(model, processor, test_data, device, results_file)
 
-model = evaluate(model, processor, test_data, device, results_file, clip_model, clip_processor)
+# Run main trained model on OpenImages test set before training OpenImages model
+if getattr(cfg, "USE_EXPERIMENT", True) and getattr(cfg, "USE_OPENIMAGES_EXPERIMENT", True):
+    write_to_file(results_file, "Evaluating main trained model on OpenImages test set...")
+    evaluate_main_model_on_openimages(model, processor, device, results_file)
+
+# Optionally run the OpenImages experiment after main training/evaluation
+if getattr(cfg, "USE_EXPERIMENT", True) and getattr(cfg, "USE_OPENIMAGES_EXPERIMENT", True):
+    write_to_file(results_file, "Training and testing OpenImages model...")
+    run_openimages_experiment()
 # %%

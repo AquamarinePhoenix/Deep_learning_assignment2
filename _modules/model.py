@@ -1,6 +1,5 @@
 import os
 import torch as th
-import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from PIL import Image
 import _modules.config as cfg
@@ -9,6 +8,8 @@ from _modules.dataset import CaptionDataset, collate_fn
 import time
 import re
 from collections import Counter
+from functools import partial
+import math
 
 def normalize_text(text):
     text = text.lower()
@@ -16,25 +17,104 @@ def normalize_text(text):
     tokens = text.split()
     return tokens
 
-def token_f1(pred, gt):
+def _extract_ngrams(tokens, n):
+    if len(tokens) < n:
+        return []
+    return [tuple(tokens[i:i + n]) for i in range(len(tokens) - n + 1)]
+
+def _metric_suffix(metric_n):
+    return f"{metric_n}"
+
+def bleu_score(pred, gt, max_n=4):
     pred_tokens = normalize_text(pred)
-    gt_tokens = normalize_text(gt)
+    ref_tokens = normalize_text(gt)
 
-    pred_counter = Counter(pred_tokens)
-    gt_counter = Counter(gt_tokens)
+    if not pred_tokens:
+        return 0.0
 
-    # intersection (min counts)
-    common = pred_counter & gt_counter
-    overlap = sum(common.values())
+    precisions = []
+    for n in range(1, max_n + 1):
+        pred_ngrams = Counter(_extract_ngrams(pred_tokens, n))
+        ref_ngrams = Counter(_extract_ngrams(ref_tokens, n))
 
-    if overlap == 0:
-        return 0.0, 0.0, 0.0
+        if not pred_ngrams:
+            precisions.append(1e-12)
+            continue
 
-    precision = overlap / sum(pred_counter.values())
-    recall = overlap / sum(gt_counter.values())
-    f1 = 2 * precision * recall / (precision + recall)
+        overlap = sum((pred_ngrams & ref_ngrams).values())
+        total_pred = sum(pred_ngrams.values())
+        precisions.append(max(overlap / total_pred, 1e-12))
 
-    return precision, recall, f1
+    pred_len = len(pred_tokens)
+    ref_len = len(ref_tokens)
+    if pred_len == 0:
+        return 0.0
+
+    brevity_penalty = 1.0 if pred_len > ref_len else math.exp(1.0 - (ref_len / pred_len))
+    geo_mean = math.exp(sum((1.0 / max_n) * math.log(p) for p in precisions))
+    return brevity_penalty * geo_mean
+
+def bleu4_score(pred, gt):
+    return bleu_score(pred, gt, max_n=4)
+
+def _build_idf(reference_texts, max_n=4):
+    num_docs = max(1, len(reference_texts))
+    idf = {}
+
+    for n in range(1, max_n + 1):
+        df = Counter()
+        for text in reference_texts:
+            tokens = normalize_text(text)
+            ngrams = set(_extract_ngrams(tokens, n))
+            for ng in ngrams:
+                df[ng] += 1
+
+        for ng, freq in df.items():
+            idf[ng] = math.log((num_docs + 1) / (freq + 1)) + 1.0
+
+    return idf
+
+def cider_score(pred, gt, idf_map, max_n=4):
+    pred_tokens = normalize_text(pred)
+    ref_tokens = normalize_text(gt)
+
+    per_n_scores = []
+    for n in range(1, max_n + 1):
+        pred_counts = Counter(_extract_ngrams(pred_tokens, n))
+        ref_counts = Counter(_extract_ngrams(ref_tokens, n))
+
+        if not pred_counts or not ref_counts:
+            per_n_scores.append(0.0)
+            continue
+
+        pred_total = sum(pred_counts.values())
+        ref_total = sum(ref_counts.values())
+
+        pred_vec = {
+            ng: (count / pred_total) * idf_map.get(ng, 0.0)
+            for ng, count in pred_counts.items()
+        }
+        ref_vec = {
+            ng: (count / ref_total) * idf_map.get(ng, 0.0)
+            for ng, count in ref_counts.items()
+        }
+
+        common = set(pred_vec.keys()) & set(ref_vec.keys())
+        dot = sum(pred_vec[ng] * ref_vec[ng] for ng in common)
+        pred_norm = math.sqrt(sum(v * v for v in pred_vec.values()))
+        ref_norm = math.sqrt(sum(v * v for v in ref_vec.values()))
+
+        if pred_norm == 0.0 or ref_norm == 0.0:
+            per_n_scores.append(0.0)
+            continue
+
+        per_n_scores.append(dot / (pred_norm * ref_norm))
+
+    # Keep the common CIDEr scaling while using 1..4 gram agreement.
+    return 10.0 * (sum(per_n_scores) / max_n)
+
+def cider4_score(pred, gt, idf_map):
+    return cider_score(pred, gt, idf_map, max_n=4)
 
 def _generation_kwargs():
     gen_kwargs = {
@@ -51,16 +131,18 @@ def _generation_kwargs():
 
     return gen_kwargs
 
-def evaluate_epoch_metrics(model, processor, data_dict, device):
+def evaluate_epoch_metrics(model, processor, data_dict, device, metric_n=4):
     if not data_dict:
         return None
 
     dataset = CaptionDataset(data_dict, cfg.IMAGE_DIR, processor)
     loader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn=collate_fn)
 
-    total_precision = 0.0
-    total_recall = 0.0
-    total_f1 = 0.0
+    reference_texts = [item["caption_lt"] for item in data_dict if item.get("caption_lt")]
+    idf_map = _build_idf(reference_texts, max_n=metric_n)
+
+    total_bleu4 = 0.0
+    total_cider4 = 0.0
     count = 0
 
     model.eval()
@@ -73,29 +155,30 @@ def evaluate_epoch_metrics(model, processor, data_dict, device):
             out = model.generate(**inputs, **_generation_kwargs())
             pred_lt = processor.decode(out[0], skip_special_tokens=True)
 
-            precision, recall, f1 = token_f1(pred_lt, caption)
-            total_precision += precision
-            total_recall += recall
-            total_f1 += f1
+            bleu_score_value = bleu_score(pred_lt, caption, max_n=metric_n)
+            cider_score_value = cider_score(pred_lt, caption, idf_map, max_n=metric_n)
+            total_bleu4 += bleu_score_value
+            total_cider4 += cider_score_value
             count += 1
 
     if count == 0:
         return None
 
-    return total_precision / count, total_recall / count, total_f1 / count
+    return total_bleu4 / count, total_cider4 / count
 
-def train(model, processor, optimizer, data_dict, device, results_file, val_data=None, save_best=cfg.SAVE_BEST):
+def train(model, processor, optimizer, data_dict, device, results_file, val_data=None, save_best=cfg.SAVE_BEST, metric_n=4):
     loss_history = []
     epoch_times = []
-    val_precision_history = []
-    val_recall_history = []
-    val_f1_history = []
+    val_bleu4_history = []
+    val_cider4_history = []
     first_epoch_sample_index = 0
 
     model.to(device)
 
     dataset = CaptionDataset(data_dict, cfg.IMAGE_DIR, processor)
-    loader = DataLoader(dataset, batch_size=cfg.BATCH_SIZE, shuffle=True, collate_fn=collate_fn)
+    # Use mosaic augmentation: 50% probability of creating 2x2 image mosaics during training
+    collate_with_mosaic = partial(collate_fn, apply_mosaic=True, mosaic_probability=0.5)
+    loader = DataLoader(dataset, batch_size=cfg.BATCH_SIZE, shuffle=True, collate_fn=collate_with_mosaic)
 
     best_loss = float("inf") if save_best else None
     best_run_root = None
@@ -146,23 +229,22 @@ def train(model, processor, optimizer, data_dict, device, results_file, val_data
         avg_loss = total_loss / count if count > 0 else 0
         loss_history.append(avg_loss)
 
-        val_metrics = evaluate_epoch_metrics(model, processor, val_data, device) if val_data else None
+        val_metrics = evaluate_epoch_metrics(model, processor, val_data, device, metric_n=metric_n) if val_data else None
         
         epoch_time = time.time() - epoch_start_time
         epoch_times.append(epoch_time)
         if val_metrics:
-            val_precision, val_recall, val_f1 = val_metrics
+            val_bleu4, val_cider4 = val_metrics
         else:
             # ensure zeros are recorded so plotting shows the lines from epoch 1
-            val_precision, val_recall, val_f1 = 0.0, 0.0, 0.0
+            val_bleu4, val_cider4 = 0.0, 0.0
 
-        val_precision_history.append(val_precision)
-        val_recall_history.append(val_recall)
-        val_f1_history.append(val_f1)
+        val_bleu4_history.append(val_bleu4)
+        val_cider4_history.append(val_cider4)
 
         write_to_file(
             results_file,
-            f"Epoch {epoch + 1}, Average Loss: {avg_loss:.4f}, Val Precision: {val_precision:.4f}, Val Recall: {val_recall:.4f}, Val F1: {val_f1:.4f}, Time: {epoch_time:.2f}s"
+            f"Epoch {epoch + 1}, Average Loss: {avg_loss:.4f}, Val BLEU-{_metric_suffix(metric_n)}: {val_bleu4:.4f}, Val CIDEr-{_metric_suffix(metric_n)}: {val_cider4:.4f}, Time: {epoch_time:.2f}s"
         )
 
         # save best-performing model by lowest average loss
@@ -187,31 +269,57 @@ def train(model, processor, optimizer, data_dict, device, results_file, val_data
     model.save_pretrained(cfg.MODEL_SAVE_DIR)
     processor.save_pretrained(cfg.MODEL_SAVE_DIR)
 
-    return model, loss_history, epoch_times, (val_precision_history, val_recall_history, val_f1_history)
+    return model, loss_history, epoch_times, (val_bleu4_history, val_cider4_history)
 
-def evaluate(model, processor, data_dict, device, results_file, clip_model, clip_processor):
+def _resolve_image_path(item):
+    image_path = item.get("image_path")
+    if image_path:
+        if os.path.isabs(image_path):
+            return image_path
+        return os.path.join(cfg.IMAGE_DIR, image_path)
+
+    img_name = item["image"]
+    test_path = os.path.join(cfg.IMAGE_DIR, "test", os.path.basename(img_name))
+
+    if os.path.exists(test_path):
+        return test_path
+
+    fallback_path = os.path.join(cfg.IMAGE_DIR, "test", img_name)
+    if os.path.exists(fallback_path):
+        return fallback_path
+
+    train_path = os.path.join(cfg.IMAGE_DIR, "train", img_name)
+    if os.path.exists(train_path):
+        return train_path
+
+    if os.path.exists(img_name):
+        return img_name
+
+    return test_path
+
+def evaluate(model, processor, data_dict, device, results_file, metric_n=4):
     model.to(device)
     model.eval()
 
     evaluated_count = 0
     skipped_count = 0
     
-    total_f1 = 0
+    reference_texts = [item.get("caption_lt", item.get("caption", "")) for item in data_dict if item.get("caption_lt") or item.get("caption")]
+    idf_map = _build_idf(reference_texts, max_n=metric_n)
+
+    total_bleu4 = 0.0
+    total_cider4 = 0.0
     count = 0
 
     for item in data_dict:
-        img_name = item["image"]
-        test_path = os.path.join(cfg.IMAGE_DIR, "test", os.path.basename(img_name))
+        img_name = item.get("image", os.path.basename(item.get("image_path", "unknown")))
+        test_path = _resolve_image_path(item)
 
         if not os.path.exists(test_path):
-            fallback_path = os.path.join(cfg.IMAGE_DIR, "test", img_name)
-            if os.path.exists(fallback_path):
-                test_path = fallback_path
-            else:
-                skipped_count += 1
-                write_to_file(results_file, f"\nTEST {img_name}")
-                write_to_file(results_file, "Skipped: test image not found")
-                continue
+            skipped_count += 1
+            write_to_file(results_file, f"\nTEST {img_name}")
+            write_to_file(results_file, "Skipped: test image not found")
+            continue
 
         image = Image.open(test_path).convert("RGB")
 
@@ -224,47 +332,26 @@ def evaluate(model, processor, data_dict, device, results_file, clip_model, clip
             )
 
         pred_lt = processor.decode(out[0], skip_special_tokens=True)
+
+        ground_truth = item.get("caption_lt", item.get("caption", ""))
+        bleu4 = bleu_score(pred_lt, ground_truth, max_n=metric_n)
+        cider4 = cider_score(pred_lt, ground_truth, idf_map, max_n=metric_n)
         
-        # prepare inputs for CLIP
-        clip_inputs = clip_processor(
-            text=[pred_lt, item["caption_lt"]],
-            images=image,
-            return_tensors="pt",
-            padding=True
-        ).to(device)
-
-        with th.no_grad():
-            outputs = clip_model(**clip_inputs)
-
-        # embeddings
-        image_embeds = outputs.image_embeds      # (1, D)
-        text_embeds = outputs.text_embeds        # (2, D)
-
-        # normalize
-        image_embeds = F.normalize(image_embeds, dim=-1)
-        text_embeds = F.normalize(text_embeds, dim=-1)
-
-        # compute cosine similarities
-        sim_pred = th.matmul(image_embeds, text_embeds[0].unsqueeze(0).T).item()
-        sim_gt   = th.matmul(image_embeds, text_embeds[1].unsqueeze(0).T).item()
-        
-        precision, recall, f1 = token_f1(pred_lt, item["caption_lt"])
-        
-        real_lt = item.get("caption_lt", "")
+        real_lt = ground_truth
 
         write_to_file(results_file, f"\nTEST {img_name}")
         write_to_file(results_file, f"Pred_LT: {pred_lt}")
         write_to_file(results_file, f"Real_LT: {real_lt}")
-        write_to_file(results_file, f"CLIP_sim_pred: {sim_pred:.4f}")
-        write_to_file(results_file, f"CLIP_sim_gt:   {sim_gt:.4f}")
-        write_to_file(results_file, f"Precision: {precision:.4f}")
-        write_to_file(results_file, f"Recall:    {recall:.4f}")
-        write_to_file(results_file, f"F1:        {f1:.4f}")
-        total_f1 += f1
+        write_to_file(results_file, f"BLEU-{_metric_suffix(metric_n)}:  {bleu4:.4f}")
+        write_to_file(results_file, f"CIDEr-{_metric_suffix(metric_n)}: {cider4:.4f}")
+        total_bleu4 += bleu4
+        total_cider4 += cider4
         count += 1
         evaluated_count += 1
 
     write_to_file(results_file, f"TEST summary -> evaluated: {evaluated_count}, skipped: {skipped_count}")
-    avg_f1 = total_f1 / count if count > 0 else 0
-    write_to_file(results_file, f"\nAverage F1: {avg_f1:.4f}")
+    avg_bleu4 = total_bleu4 / count if count > 0 else 0.0
+    avg_cider4 = total_cider4 / count if count > 0 else 0.0
+    write_to_file(results_file, f"\nAverage BLEU-{_metric_suffix(metric_n)}: {avg_bleu4:.4f}")
+    write_to_file(results_file, f"Average CIDEr-{_metric_suffix(metric_n)}: {avg_cider4:.4f}")
     return model
