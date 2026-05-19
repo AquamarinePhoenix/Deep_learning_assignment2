@@ -18,8 +18,96 @@ temperature_tag = str(cfg.TEMPERATURE).replace(".", "p")
 results_file = os.path.join(cfg.OUTPUT_DIR, f"results_temp_{temperature_tag}.txt")
 clear_file(results_file)
 
+
+def _load_mutual_test_records():
+    mutual_dir = os.path.join(os.path.dirname(cfg.CAPTIONS_TEST), "mutual")
+    if not os.path.isdir(mutual_dir):
+        return []
+
+    caption_map = {
+        "dog.jpg": ("a dog", "šuo"),
+        "horse.jpg": ("a horse", "arklys"),
+        "horse_dog.jpg": ("a horse and a dog", "arklys ir šuo"),
+        "park.jpg": ("a park", "parkas"),
+        "random.jpg": ("a colorful grid", "spalvų tinklelis"),
+    }
+
+    mutual_records = []
+    for filename in sorted(os.listdir(mutual_dir)):
+        if not filename.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
+            continue
+
+        caption_en, caption_lt = caption_map.get(
+            filename,
+            (os.path.splitext(filename)[0].replace("_", " "), os.path.splitext(filename)[0].replace("_", " ")),
+        )
+        absolute_image_path = os.path.abspath(os.path.join(mutual_dir, filename))
+        mutual_records.append(
+            {
+                "image": filename,
+                "image_path": absolute_image_path,
+                "caption_en": caption_en,
+                "caption_lt": caption_lt,
+                "label": "mutual",
+                "split": "test",
+            }
+        )
+
+    return mutual_records
+
+
+def _select_coco_training_records(records, target_total, label_ratios=None, seed=42):
+    if not records or target_total <= 0:
+        return []
+
+    label_ratios = label_ratios or {"horse": 0.45, "dog": 0.45, "background": 0.10}
+    label_order = ["horse", "dog", "background"]
+    grouped = {label: [] for label in label_order}
+    for record in records:
+        label = str(record.get("label", "")).lower()
+        if label in grouped:
+            grouped[label].append(record)
+
+    rng = random.Random(seed)
+    for label_records in grouped.values():
+        rng.shuffle(label_records)
+
+    raw_targets = {label: float(target_total) * float(label_ratios.get(label, 0.0)) for label in label_order}
+    target_counts = {label: int(raw_targets[label]) for label in label_order}
+    remainder = target_total - sum(target_counts.values())
+    if remainder > 0:
+        for label in sorted(label_order, key=lambda name: (raw_targets[name] - target_counts[name]), reverse=True):
+            if remainder == 0:
+                break
+            target_counts[label] += 1
+            remainder -= 1
+
+    selected = []
+    for label in label_order:
+        pool = grouped[label]
+        if not pool:
+            continue
+
+        needed = target_counts[label]
+        if needed <= len(pool):
+            selected.extend(pool[:needed])
+            continue
+
+        selected.extend(pool)
+        index = 0
+        while len([item for item in selected if str(item.get("label", "")).lower() == label]) < needed:
+            selected.append(pool[index % len(pool)])
+            index += 1
+
+    if len(selected) < target_total:
+        leftovers = [record for record in records if record not in selected]
+        rng.shuffle(leftovers)
+        selected.extend(leftovers[: target_total - len(selected)])
+
+    return selected[:target_total]
+
 write_to_file(results_file, f"TEMPERATURE: {cfg.TEMPERATURE}")
-write_to_file(results_file, f"COCO_TRAIN_SIZE: {getattr(cfg, 'OPENIMAGES_TRAIN_SIZE', 200)}")
+write_to_file(results_file, f"COCO_TRAIN_RATIO: {getattr(cfg, 'COCO_TRAIN_RATIO', 0.5)}")
 
 with open(cfg.CAPTIONS_TRAIN, "r", encoding="utf-8") as f:
     train_data = json.load(f)
@@ -41,11 +129,13 @@ openimages_train_data = []
 openimages_test_data = []
 if getattr(cfg, "USE_OPENIMAGES_EXPERIMENT", True):
     openimages_train_data, openimages_test_data = build_openimages_dataset()
-    openimages_train_size = int(getattr(cfg, "OPENIMAGES_TRAIN_SIZE", 200))
-    if openimages_train_size > 0:
-        openimages_train_data = openimages_train_data[:min(openimages_train_size, len(openimages_train_data))]
-    else:
-        openimages_train_data = []
+    coco_train_target = max(1, int(round(num_all_train_samples * float(getattr(cfg, "COCO_TRAIN_RATIO", 0.5)))))
+    openimages_train_data = _select_coco_training_records(
+        openimages_train_data,
+        coco_train_target,
+        label_ratios=getattr(cfg, "COCO_TRAIN_LABEL_RATIOS", None),
+        seed=42,
+    )
 
 if openimages_train_data:
     train_data = train_data + openimages_train_data
@@ -65,6 +155,7 @@ elif val_split > 0.0:
 write_to_file(results_file, f"TRAIN set JSON: {cfg.CAPTIONS_TRAIN}")
 write_to_file(results_file, f"Total TRAIN samples available: {num_all_train_samples}")
 write_to_file(results_file, f"TRAIN_SUBSET_RATIO: {train_subset_ratio}")
+write_to_file(results_file, f"COCO train target: {max(1, int(round(num_all_train_samples * float(getattr(cfg, 'COCO_TRAIN_RATIO', 0.5)))))}")
 write_to_file(results_file, f"COCO train samples added: {len(openimages_train_data)}")
 write_to_file(results_file, f"Combined train samples used: {len(train_data)}")
 write_to_file(results_file, f"Loaded {len(train_data)} TRAIN samples")
@@ -106,8 +197,14 @@ else:
 with open(cfg.CAPTIONS_TEST, "r", encoding="utf-8") as f:
     test_data = json.load(f)
 
+mutual_test_data = _load_mutual_test_records()
+if mutual_test_data:
+    test_data.extend(mutual_test_data)
+
 write_to_file(results_file, f"TEST set JSON: {cfg.CAPTIONS_TEST}")
 write_to_file(results_file, f"Loaded {len(test_data)} TEST samples")
+if mutual_test_data:
+    write_to_file(results_file, f"Added {len(mutual_test_data)} mutual test samples from data/mutual")
 
 model = evaluate(model, processor, test_data, device, results_file)
 

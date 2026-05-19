@@ -6,8 +6,14 @@ LEARNING_RATE = 3e-5
 BATCH_SIZE = 8
 NUM_BEAMS = 5
 VAL_SPLIT = 0.1
-TRAIN_SUBSET_RATIO = 0.1
+TRAIN_SUBSET_RATIO = 1.0
 OPENIMAGES_TRAIN_SIZE = 200
+COCO_TRAIN_RATIO = 0.5
+COCO_TRAIN_LABEL_RATIOS = {
+	"horse": 0.45,
+	"dog": 0.45,
+	"background": 0.10,
+}
 
 VLM_NAME = "Salesforce/blip-image-captioning-base"
 DEVICE = "cuda" if th.cuda.is_available() else "cpu"
