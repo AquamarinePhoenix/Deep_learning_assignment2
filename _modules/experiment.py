@@ -24,11 +24,18 @@ class OpenImagesExperimentConfig:
     split_seed: int = 42
     max_samples_per_class: int = 100
     target_classes: tuple[str, ...] = ("horse", "dog", "background")
-    target_captions: dict[str, str] = field(
+    target_captions_en: dict[str, str] = field(
         default_factory=lambda: {
             "horse": "a horse",
             "dog": "a dog",
             "background": "a background",
+        }
+    )
+    target_captions_lt: dict[str, str] = field(
+        default_factory=lambda: {
+            "horse": "arklys",
+            "dog": "šuo",
+            "background": "fonas",
         }
     )
     dataset_dir: str = cfg.OPENIMAGES_DATA_DIR
@@ -40,21 +47,23 @@ def _ensure_dir(path):
     os.makedirs(path, exist_ok=True)
 
 
-def _load_fiftyone_zoo_dataset():
+def _load_fiftyone_zoo_dataset(max_samples):
     try:
         import fiftyone.zoo as foz
     except ImportError as exc:
         raise RuntimeError(
-            "The OpenImages experiment requires the 'fiftyone' package. Install it before running this path."
+            "The COCO experiment requires the 'fiftyone' package. Install it before running this path."
         ) from exc
 
+    dataset_name = getattr(cfg, "OPENIMAGES_SOURCE_DATASET", "coco-2017")
+
     return foz.load_zoo_dataset(
-        "open-images-v7",
+        dataset_name,
         split="train",
         label_types=["detections"],
         shuffle=True,
         seed=cfg.OPENIMAGES_SPLIT_SEED,
-        max_samples=max(1, cfg.OPENIMAGES_MAX_SAMPLES_PER_CLASS * 6),
+        max_samples=max(1, max_samples),
     )
 
 
@@ -75,7 +84,7 @@ def _extract_sample_labels(sample):
     return labels
 
 
-def _sample_to_record(sample, caption, label, split_name, dataset_root):
+def _sample_to_record(sample, caption_en, caption_lt, label, split_name, dataset_root):
     image_dir = os.path.join(dataset_root, "images", split_name, label)
     _ensure_dir(image_dir)
 
@@ -92,14 +101,14 @@ def _sample_to_record(sample, caption, label, split_name, dataset_root):
     return {
         "image": relative_image_path,
         "image_path": target_path,
-        "caption_en": caption,
-        "caption_lt": caption,
+        "caption_en": caption_en,
+        "caption_lt": caption_lt,
         "label": label,
         "split": split_name,
     }
 
 
-def _build_class_records(dataset, label_name, target_caption, max_samples, target_labels=None):
+def _build_class_records(dataset, label_name, max_samples, target_labels=None):
     records = []
     target_labels = {label.lower() for label in (target_labels or [label_name])}
 
@@ -112,7 +121,7 @@ def _build_class_records(dataset, label_name, target_caption, max_samples, targe
             if label_name not in sample_labels:
                 continue
 
-        records.append((sample, target_caption))
+        records.append(sample)
         if len(records) >= max_samples:
             break
 
@@ -133,21 +142,21 @@ def _balanced_split(records_by_label, train_split, seed):
         else:
             split_index = len(shuffled)
 
-        train_records.extend([(label, sample, caption) for sample, caption in shuffled[:split_index]])
-        test_records.extend([(label, sample, caption) for sample, caption in shuffled[split_index:]])
+        train_records.extend([(label, sample) for sample in shuffled[:split_index]])
+        test_records.extend([(label, sample) for sample in shuffled[split_index:]])
 
     rng.shuffle(train_records)
     rng.shuffle(test_records)
     return train_records, test_records
 
 
-def build_openimages_dataset(experiment_cfg=None):
+def build_openimages_dataset(experiment_cfg=None, force_rebuild=False):
     experiment_cfg = experiment_cfg or OpenImagesExperimentConfig()
     dataset_root = experiment_cfg.dataset_dir
     train_json = cfg.OPENIMAGES_TRAIN_JSON
     test_json = cfg.OPENIMAGES_TEST_JSON
 
-    if os.path.exists(train_json) and os.path.exists(test_json):
+    if not force_rebuild and os.path.exists(train_json) and os.path.exists(test_json):
         with open(train_json, "r", encoding="utf-8") as train_file:
             train_records = json.load(train_file)
         with open(test_json, "r", encoding="utf-8") as test_file:
@@ -157,22 +166,20 @@ def build_openimages_dataset(experiment_cfg=None):
     _ensure_dir(dataset_root)
     _ensure_dir(os.path.join(dataset_root, "images"))
 
-    zoo_dataset = _load_fiftyone_zoo_dataset()
+    sample_pool_size = int(getattr(cfg, "OPENIMAGES_SOURCE_SAMPLE_POOL", max(5000, experiment_cfg.max_samples_per_class * 50)))
+    zoo_dataset = _load_fiftyone_zoo_dataset(sample_pool_size)
 
     records_by_label = defaultdict(list)
-    target_label_lookup = {label.lower() for label in experiment_cfg.target_classes}
 
     horse_records = _build_class_records(
         zoo_dataset,
         "horse",
-        experiment_cfg.target_captions["horse"],
         experiment_cfg.max_samples_per_class,
         target_labels={"horse"},
     )
     dog_records = _build_class_records(
         zoo_dataset,
         "dog",
-        experiment_cfg.target_captions["dog"],
         experiment_cfg.max_samples_per_class,
         target_labels={"dog"},
     )
@@ -180,7 +187,6 @@ def build_openimages_dataset(experiment_cfg=None):
     background_records = _build_class_records(
         zoo_dataset,
         "background",
-        experiment_cfg.target_captions["background"],
         experiment_cfg.max_samples_per_class,
         target_labels={"horse", "dog"},
     )
@@ -192,7 +198,12 @@ def build_openimages_dataset(experiment_cfg=None):
     for label_name, records in records_by_label.items():
         if not records:
             raise RuntimeError(
-                f"OpenImages experiment could not collect any '{label_name}' samples. Check the FiftyOne label fields or target class names."
+                f"COCO experiment could not collect any '{label_name}' samples. Check the FiftyOne label fields or target class names."
+            )
+        if len(records) < experiment_cfg.max_samples_per_class:
+            raise RuntimeError(
+                f"COCO experiment collected too few '{label_name}' samples: {len(records)} / {experiment_cfg.max_samples_per_class}. "
+                f"Increase OPENIMAGES_SOURCE_SAMPLE_POOL (currently {sample_pool_size}) or reduce OPENIMAGES_MAX_SAMPLES_PER_CLASS."
             )
 
     train_records_raw, test_records_raw = _balanced_split(
@@ -202,14 +213,32 @@ def build_openimages_dataset(experiment_cfg=None):
     )
 
     if not train_records_raw or not test_records_raw:
-        raise RuntimeError("OpenImages experiment split produced an empty train or test set.")
+        raise RuntimeError("COCO experiment split produced an empty train or test set.")
 
     train_records = []
     test_records = []
-    for label, sample, caption in train_records_raw:
-        train_records.append(_sample_to_record(sample, caption, label, "train", dataset_root))
-    for label, sample, caption in test_records_raw:
-        test_records.append(_sample_to_record(sample, caption, label, "test", dataset_root))
+    for label, sample in train_records_raw:
+        train_records.append(
+            _sample_to_record(
+                sample,
+                experiment_cfg.target_captions_en[label],
+                experiment_cfg.target_captions_lt[label],
+                label,
+                "train",
+                dataset_root,
+            )
+        )
+    for label, sample in test_records_raw:
+        test_records.append(
+            _sample_to_record(
+                sample,
+                experiment_cfg.target_captions_en[label],
+                experiment_cfg.target_captions_lt[label],
+                label,
+                "test",
+                dataset_root,
+            )
+        )
 
     _ensure_dir(os.path.dirname(train_json))
     with open(train_json, "w", encoding="utf-8") as train_file:
@@ -286,51 +315,7 @@ def _save_test_preview(model, processor, test_records, device, results_file, met
         return
 
     def _pick_preview_records(records, target_count):
-        rng = random.Random(cfg.OPENIMAGES_SPLIT_SEED)
-
-        horse_dog = [
-            item for item in records if str(item.get("label", "")).lower() in {"horse", "dog"}
-        ]
-        background = [
-            item for item in records if str(item.get("label", "")).lower() == "background"
-        ]
-        others = [
-            item
-            for item in records
-            if str(item.get("label", "")).lower() not in {"horse", "dog", "background"}
-        ]
-
-        rng.shuffle(horse_dog)
-        rng.shuffle(background)
-        rng.shuffle(others)
-
-        selected = []
-        max_background = 1
-        target_horse_dog = max(0, target_count - (1 if background else 0))
-
-        # Prefer horse/dog samples; repeat if needed to reach a rich preview grid.
-        if horse_dog:
-            while len(selected) < target_horse_dog:
-                selected.append(horse_dog[len(selected) % len(horse_dog)])
-
-        # Keep at most one background preview sample.
-        if background and len(selected) < target_count and max_background > 0:
-            selected.append(background[0])
-
-        # If horse/dog are unavailable, fill remaining slots from non-background items.
-        if len(selected) < target_count:
-            fill_pool = horse_dog + others
-            if fill_pool:
-                fill_index = 0
-                while len(selected) < target_count:
-                    selected.append(fill_pool[fill_index % len(fill_pool)])
-                    fill_index += 1
-
-        # Final fallback when only background exists.
-        if not selected:
-            selected = records[: min(target_count, len(records))]
-
-        return selected[:target_count]
+        return records[:target_count]
 
     preview_count = min(sample_count, len(test_records)) if test_records else 0
     preview_records = _pick_preview_records(test_records, preview_count)
@@ -352,7 +337,7 @@ def _save_test_preview(model, processor, test_records, device, results_file, met
         axes = [axes]
 
     write_to_file(results_file, "")
-    write_to_file(results_file, f"Saving {preview_count} random test previews to {figure_path}")
+    write_to_file(results_file, f"Saving {preview_count} test previews to {figure_path}")
 
     for index, (axis, item) in enumerate(zip(axes, preview_records), start=1):
         image_path = item.get("image_path")

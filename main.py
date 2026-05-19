@@ -10,12 +10,16 @@ from _modules.VLM import load_VLM
 from _modules.write import clear_file, write_to_file
 from _modules.model import train, evaluate
 from _modules.plots import plot_training_curves
-from _modules.experiment import run_openimages_experiment, evaluate_main_model_on_openimages
+from _modules.experiment import build_openimages_dataset
 
 load_dotenv()
 token = os.getenv("HF_TOKEN")
-results_file = cfg.OUTPUT_DIR + "results.txt"
+temperature_tag = str(cfg.TEMPERATURE).replace(".", "p")
+results_file = os.path.join(cfg.OUTPUT_DIR, f"results_temp_{temperature_tag}.txt")
 clear_file(results_file)
+
+write_to_file(results_file, f"TEMPERATURE: {cfg.TEMPERATURE}")
+write_to_file(results_file, f"COCO_TRAIN_SIZE: {getattr(cfg, 'OPENIMAGES_TRAIN_SIZE', 200)}")
 
 with open(cfg.CAPTIONS_TRAIN, "r", encoding="utf-8") as f:
     train_data = json.load(f)
@@ -33,6 +37,19 @@ if num_all_train_samples > 0 and len(train_data) == 0:
         "Increase TRAIN_SUBSET_RATIO for a non-empty training set."
     )
 
+openimages_train_data = []
+openimages_test_data = []
+if getattr(cfg, "USE_OPENIMAGES_EXPERIMENT", True):
+    openimages_train_data, openimages_test_data = build_openimages_dataset()
+    openimages_train_size = int(getattr(cfg, "OPENIMAGES_TRAIN_SIZE", 200))
+    if openimages_train_size > 0:
+        openimages_train_data = openimages_train_data[:min(openimages_train_size, len(openimages_train_data))]
+    else:
+        openimages_train_data = []
+
+if openimages_train_data:
+    train_data = train_data + openimages_train_data
+
 val_split = float(getattr(cfg, "VAL_SPLIT", 0.0))
 val_data = []
 if 0.0 < val_split < 1.0 and len(train_data) > 1:
@@ -48,6 +65,8 @@ elif val_split > 0.0:
 write_to_file(results_file, f"TRAIN set JSON: {cfg.CAPTIONS_TRAIN}")
 write_to_file(results_file, f"Total TRAIN samples available: {num_all_train_samples}")
 write_to_file(results_file, f"TRAIN_SUBSET_RATIO: {train_subset_ratio}")
+write_to_file(results_file, f"COCO train samples added: {len(openimages_train_data)}")
+write_to_file(results_file, f"Combined train samples used: {len(train_data)}")
 write_to_file(results_file, f"Loaded {len(train_data)} TRAIN samples")
 write_to_file(results_file, f"VAL_SPLIT: {val_split}")
 write_to_file(results_file, f"Loaded {len(val_data)} VALIDATION samples")
@@ -82,7 +101,7 @@ else:
     model, loss_history, epoch_times, val_metrics = train(model, processor, optimizer, train_data, device, results_file, val_data=val_data)
     write_to_file(results_file, f"Total training time: {sum(epoch_times):.2f}s")
 
-    plot_training_curves(loss_history, epoch_times, val_metrics=val_metrics)
+    plot_training_curves(loss_history, epoch_times, val_metrics=val_metrics, temperature=cfg.TEMPERATURE)
 
 with open(cfg.CAPTIONS_TEST, "r", encoding="utf-8") as f:
     test_data = json.load(f)
@@ -92,13 +111,8 @@ write_to_file(results_file, f"Loaded {len(test_data)} TEST samples")
 
 model = evaluate(model, processor, test_data, device, results_file)
 
-# Run main trained model on OpenImages test set before training OpenImages model
-if getattr(cfg, "USE_EXPERIMENT", True) and getattr(cfg, "USE_OPENIMAGES_EXPERIMENT", True):
-    write_to_file(results_file, "Evaluating main trained model on OpenImages test set...")
-    evaluate_main_model_on_openimages(model, processor, device, results_file)
-
-# Optionally run the OpenImages experiment after main training/evaluation
-if getattr(cfg, "USE_EXPERIMENT", True) and getattr(cfg, "USE_OPENIMAGES_EXPERIMENT", True):
-    write_to_file(results_file, "Training and testing OpenImages model...")
-    run_openimages_experiment()
+if openimages_test_data:
+    write_to_file(results_file, "---test_on_coco----")
+    write_to_file(results_file, f"Loaded {len(openimages_test_data)} COCO test samples")
+    model = evaluate(model, processor, openimages_test_data, device, results_file, metric_n=getattr(cfg, "OPENIMAGES_METRIC_N", 4))
 # %%

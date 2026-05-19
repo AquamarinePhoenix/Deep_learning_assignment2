@@ -21,17 +21,16 @@
    - Adapt `Salesforce/blip-image-captioning-base` using the Lithuanian dataset
    - Use strategic fine-tuning: freeze vision encoder, train text decoder
    - Save best-performing checkpoint based on training metrics
+   - Merge in a capped OpenImages training subset so the main pipeline learns from both the curated Lithuanian set and extra domain samples
 
 3. **Model Validation**
    - Evaluate on held-out test images
    - Generate Lithuanian captions for unseen images
-   - Report metrics: token F1-score and CLIP similarity
+   - Report BLEU and CIDEr on both the Lithuanian test set and the OpenImages test set
 
 ---
-This task requires creating a new, unique small dataset and using it to fine-tune a VLM for Lithuanian language.
 
-Main requirements
-Dataset creation
+## Current Pipeline
 
 Create a new, original dataset, not directly reused from existing benchmarks.
 The dataset must target Lithuanian language.
@@ -561,6 +560,8 @@ The average F1 score suggests that the predictions are way off and need better g
 Interestingly enough, sometimes the predicted cosine similarity is higher than the ground truth's. The reason behind that is the dominance of english words in the prediction: if there are still english words dominant in the predicted caption, CLIP model fancies the predicted over the lithuanian.
 Moreover, when recall and precision are higher than 0.01, it is apparent that mostly precision is higher than recall, which indicates that the model struggles to find the ground truth labels rather than the positives prediction accuracy itself.
 
+The repository fine-tunes BLIP on the curated Lithuanian caption set and appends up to `OPENIMAGES_TRAIN_SIZE` OpenImages train samples before training. Evaluation runs on both the Lithuanian test set and the OpenImages test set, and each run saves temperature-tagged logs and plots so different temperature sweeps can be compared later.
+
 ---
 
 ## Further Research
@@ -579,11 +580,11 @@ Moreover, when recall and precision are higher than 0.01, it is apparent that mo
 - Be ready to explain how the dataset was created, including where the images came from, how the Lithuanian captions were written or checked, and why the set is original.
 - Be ready to state the dataset size and structure clearly: 79 training images, 13 test images, and 13 semantic categories.
 - Be ready to explain the fine-tuning method: BLIP was pretrained first, then fine-tuned on the Lithuanian captions, with the vision encoder frozen and the text side updated.
-- Be ready to show the saved checkpoints and training logs, especially the `output/results.txt` file and the saved model folders.
+- Be ready to show the saved checkpoints and temperature-specific training log, especially the `output/results_temp_<temperature>.txt` file and the saved model folders.
 - Be ready to demonstrate the model on new instructor-provided inputs and describe how the dataset influenced the output.
 - LoRA or DoRA is not required for this assignment; the current fine-tuning setup is already valid as a standard VLM fine-tuning approach.
 
-- calculate blue stats on text comparison
+- calculate blue stats on text comparison +
 - compare to first task's dataset. two checkpoints: model designed and pretrained.
-- data augmentations: mosaics, complex photo design
+- data augmentations: mosaics, complex photo design +
 - temperature = 0 check

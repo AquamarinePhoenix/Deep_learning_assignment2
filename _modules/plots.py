@@ -4,8 +4,17 @@ import matplotlib.pyplot as plt
 
 import _modules.config as cfg
 
-def plot_training_curves(loss_history, time_history, val_metrics=None, metric_n=4):
+def _format_temperature_suffix(temperature):
+    if temperature is None:
+        return ""
+    return f"_temp_{str(temperature).replace('.', 'p')}"
+
+
+def plot_training_curves(loss_history, time_history, val_metrics=None, metric_n=4, temperature=None):
     epochs = list(range(1, len(loss_history) + 1))
+    temperature_suffix = _format_temperature_suffix(temperature)
+    temperature_label = f"Temperature: {temperature}" if temperature is not None else "Temperature: n/a"
+
     fig, ax1 = plt.subplots()
     
     ax1.bar(
@@ -34,12 +43,12 @@ def plot_training_curves(loss_history, time_history, val_metrics=None, metric_n=
     ax2.set_ylabel("Loss")
     ax2.tick_params(axis='y')
 
-    plt.title("Training Loss + Time per Epoch")
+    plt.title(f"Training Loss + Time per Epoch ({temperature_label})")
     lines_1, labels_1 = ax1.get_legend_handles_labels()
     lines_2, labels_2 = ax2.get_legend_handles_labels()
     ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc="upper right")
     os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)
-    fig.savefig(os.path.join(cfg.OUTPUT_DIR, "training_loss.png"), dpi=200, bbox_inches="tight")
+    fig.savefig(os.path.join(cfg.OUTPUT_DIR, f"training_loss{temperature_suffix}.png"), dpi=200, bbox_inches="tight")
     plt.show()
     plt.close(fig)
 
@@ -54,7 +63,7 @@ def plot_training_curves(loss_history, time_history, val_metrics=None, metric_n=
         ax.set_ylabel('Score')
         ax.grid(True, linestyle='--', alpha=0.3)
         ax.legend(loc='upper right')
-        plt.title(f'Validation BLEU-{metric_n} / CIDEr-{metric_n} per Epoch')
-        fig2.savefig(os.path.join(cfg.OUTPUT_DIR, 'training_metrics.png'), dpi=200, bbox_inches='tight')
+        plt.title(f'Validation BLEU-{metric_n} / CIDEr-{metric_n} per Epoch ({temperature_label})')
+        fig2.savefig(os.path.join(cfg.OUTPUT_DIR, f'training_metrics{temperature_suffix}.png'), dpi=200, bbox_inches='tight')
         plt.show()
         plt.close(fig2)
