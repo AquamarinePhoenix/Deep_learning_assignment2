@@ -274,9 +274,16 @@ def train(model, processor, optimizer, data_dict, device, results_file, val_data
 def _resolve_image_path(item):
     image_path = item.get("image_path")
     if image_path:
+        if os.path.exists(image_path):
+            return image_path
         if os.path.isabs(image_path):
             return image_path
-        return os.path.join(cfg.IMAGE_DIR, image_path)
+        joined_path = os.path.join(os.getcwd(), image_path)
+        if os.path.exists(joined_path):
+            return joined_path
+        legacy_path = os.path.join(cfg.IMAGE_DIR, image_path)
+        if os.path.exists(legacy_path):
+            return legacy_path
 
     img_name = item["image"]
     test_path = os.path.join(cfg.IMAGE_DIR, "test", os.path.basename(img_name))
